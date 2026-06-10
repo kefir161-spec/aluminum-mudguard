@@ -373,6 +373,31 @@ label {
   height: auto;
 }
 
+.top-view-callout__frame {
+  fill: #fff;
+  stroke: #2563eb;
+  stroke-width: 1.5;
+}
+
+.top-view-callout__label {
+  fill: #1e40af;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.top-view-callout__leader {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 1;
+}
+
+.top-view-corner-mark {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
 .strip-row {
   cursor: pointer;
 }
