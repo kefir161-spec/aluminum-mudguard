@@ -134,21 +134,13 @@ const buildCableChainSegments = (
   ];
 
   let cursor = edgeOffsetMm;
-  let index = 0;
-  while (index < spacingsMm.length) {
-    const spacing = spacingsMm[index];
-    let run = 1;
-    while (index + run < spacingsMm.length && spacingsMm[index + run] === spacing) {
-      run += 1;
-    }
-    const spanMm = spacing * run;
+  for (const spacing of spacingsMm) {
     segments.push({
       startMm: cursor,
-      endMm: cursor + spanMm,
-      label: run > 1 ? `${spacing}×${run}` : `${spacing}`,
+      endMm: cursor + spacing,
+      label: `${spacing}`,
     });
-    cursor += spanMm;
-    index += run;
+    cursor += spacing;
   }
 
   segments.push({
