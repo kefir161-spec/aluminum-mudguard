@@ -159,6 +159,38 @@ export const getDisplayLayoutPattern = (
 };
 
 /**
+ * Порядок типов для легенды чертежа: слева направo по ковру, один цикл без дублей.
+ */
+export const deriveLegendTypesFromStrips = (
+  strips: Strip[],
+  savedPattern?: ModuleType[],
+  autoFillEnabled = false,
+): ModuleType[] => {
+  const compact = getDisplayLayoutPattern(strips, savedPattern, autoFillEnabled);
+  if (compact.length < strips.length) {
+    return compact;
+  }
+
+  const types = compact;
+  if (types.length === 0) return [];
+
+  for (let period = 1; period < types.length; period += 1) {
+    if (types.length % period !== 0) continue;
+    const pattern = types.slice(0, period);
+    if (types.every((type, index) => type === pattern[index % period])) {
+      return pattern;
+    }
+  }
+
+  const seen = new Set<ModuleType>();
+  return types.filter((type) => {
+    if (seen.has(type)) return false;
+    seen.add(type);
+    return true;
+  });
+};
+
+/**
  * Следующий профиль строго по порядку комбинации.
  * Не подбирает «что влезет» в хвост — иначе тонкие скребки забивают остаток подряд.
  */

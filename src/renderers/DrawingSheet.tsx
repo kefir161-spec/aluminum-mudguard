@@ -1,7 +1,7 @@
-import { getScraperEdgeWarnings } from '../domain/layoutRules';
+import { getScraperEdgeWarnings, deriveLegendTypesFromStrips } from '../domain/layoutRules';
 import { DRAWING_EXPORT_HEIGHT, DRAWING_EXPORT_ID, DRAWING_EXPORT_WIDTH } from '../export/drawingExport';
 import { moduleDefinitions } from '../domain/moduleDefinitions';
-import type { CalculationResult, ModuleType, ProductConfig } from '../domain/types';
+import type { CalculationResult, ProductConfig } from '../domain/types';
 import { getLengthPxPerMm } from '../data/profileTextures';
 import { ProfileTextureDefs } from './ProfileTextureDefs';
 import { ProfileStripGraphics } from './ProfileStripGraphics';
@@ -19,14 +19,8 @@ type Props = {
   forExport?: boolean;
 };
 
-const LEGEND_TYPE_ORDER: ModuleType[] = ['rubber', 'pile', 'brush', 'scraper'];
 const LEGEND_ITEM_H = 30;
 const WIDTH_DIM_LINE_GAP = 20;
-
-const buildLegendTypes = (strips: ProductConfig['strips']): ModuleType[] => {
-  const used = new Set(strips.map((strip) => strip.type));
-  return LEGEND_TYPE_ORDER.filter((type) => used.has(type));
-};
 
 export const DrawingSheet = ({ config, calculation, forExport = false }: Props) => {
   const width = DRAWING_EXPORT_WIDTH;
@@ -45,7 +39,11 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
     cableLayout && config.totalLengthMm > 0
       ? cableYPositions(config.totalLengthMm, layout.matY, layout.matH, cableLayout.positionsMm)
       : [];
-  const legendTypes = buildLegendTypes(config.strips);
+  const legendTypes = deriveLegendTypesFromStrips(
+    config.strips,
+    config.layoutPattern,
+    config.autoFillEnabled ?? false,
+  );
   const legendH = legendTypes.length > 0 ? 34 + legendTypes.length * LEGEND_ITEM_H + 16 : layout.legendH;
   const requestedWidthMm = getRequestedLayoutWidthMm(calculation);
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
@@ -194,7 +192,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           Легенда
         </text>
         {legendTypes.map((type, i) => (
-          <g key={type}>
+          <g key={`legend-${i}-${type}`}>
             <ProfileStripGraphics
               type={type}
               x={layout.legendX + 14}

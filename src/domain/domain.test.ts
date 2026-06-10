@@ -4,6 +4,7 @@ import {
   computeLayoutWidth,
   countPlugs,
   createStrip,
+  deriveLegendTypesFromStrips,
   getStripNominalWidth,
   patternHasScraperAtEdge,
   rebuildLayoutToTargetWidth,
@@ -61,6 +62,38 @@ describe('layoutRules', () => {
     const scraper = createStrip('scraper');
     expect(rubber.widthMm).toBe(PLANK_WIDTH_MM);
     expect(scraper.widthMm).toBe(SCRAPER_WIDTH_MM);
+  });
+
+  it('derives legend order from left-to-right carpet cycle', () => {
+    const pattern = ['rubber', 'scraper', 'brush'] as const;
+    const types = Array.from({ length: 9 }, (_, index) => pattern[index % pattern.length]);
+    const strips = types.map((type, index) => ({ id: `s-${index}`, type, widthMm: PLANK_WIDTH_MM }));
+    expect(deriveLegendTypesFromStrips(strips)).toEqual(['rubber', 'scraper', 'brush']);
+  });
+
+  it('does not treat full strip list as legend cycle', () => {
+    const pattern = ['brush', 'scraper', 'pile', 'rubber'] as const;
+    const types = Array.from({ length: 20 }, (_, index) => pattern[index % pattern.length]);
+    const strips = types.map((type, index) => ({ id: `s-${index}`, type, widthMm: PLANK_WIDTH_MM }));
+    expect(deriveLegendTypesFromStrips(strips)).toEqual(['brush', 'scraper', 'pile', 'rubber']);
+  });
+
+  it('prefers saved layout pattern for legend', () => {
+    const strips = rebuildLayoutToTargetWidth(['brush', 'scraper', 'pile'], 1000);
+    expect(deriveLegendTypesFromStrips(strips, ['brush', 'scraper', 'pile'], true)).toEqual([
+      'brush',
+      'scraper',
+      'pile',
+    ]);
+  });
+
+  it('derives legend order for non-repeating layout without duplicates', () => {
+    const strips = [
+      { id: '1', type: 'rubber' as const, widthMm: PLANK_WIDTH_MM },
+      { id: '2', type: 'pile' as const, widthMm: PLANK_WIDTH_MM },
+      { id: '3', type: 'brush' as const, widthMm: PLANK_WIDTH_MM },
+    ];
+    expect(deriveLegendTypesFromStrips(strips)).toEqual(['rubber', 'pile', 'brush']);
   });
 });
 
