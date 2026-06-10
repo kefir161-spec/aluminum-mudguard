@@ -133,7 +133,7 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick }: Props
     >
       <ProfileTextureDefs widthScale={layout.scale} lengthPxPerMm={lengthPxPerMm} idPrefix="topview" />
 
-      <text x={viewWidth / 2} y={24} textAnchor="middle" className="dim-text">
+      <text x={16} y={20} textAnchor="start" className="top-view-title">
         Вид сверху
         {config.dimensionSource === 'pit' ? ` · приямок ${config.orderWidthMm}×${config.orderLengthMm} мм` : ''}
       </text>
