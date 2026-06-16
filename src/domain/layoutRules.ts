@@ -209,21 +209,36 @@ const appendNextFromPattern = (
   return patternIndex + 1;
 };
 
-/** Заполняет ширину полотна повторением комбинации (без обрезки краевых скребков). */
+/** Убирает скребки с краёв комбинации — по краям только широкие планки. */
+export const sanitizePatternForAutofill = (pattern: ModuleType[]): ModuleType[] => {
+  const result = [...pattern];
+  while (result.length > 0 && result[0] === 'scraper') {
+    result.shift();
+  }
+  while (result.length > 0 && result[result.length - 1] === 'scraper') {
+    result.pop();
+  }
+  return result.length > 0 ? result : ['rubber'];
+};
+
+/** Заполняет ширину полотна повторением комбинации; края без скребков. */
 export const rebuildLayoutToTargetWidth = (pattern: ModuleType[], targetWidthMm: number): Strip[] => {
-  if (pattern.length === 0) return [];
+  const safePattern = sanitizePatternForAutofill(pattern);
+  if (safePattern.length === 0) return [];
 
   const strips: Strip[] = [];
   let patternIndex = 0;
   let guard = 0;
 
   while (guard++ < 2000 && computeLayoutWidth(strips) < targetWidthMm - 0.01) {
-    const nextIndex = appendNextFromPattern(strips, pattern, targetWidthMm, patternIndex);
+    const nextIndex = appendNextFromPattern(strips, safePattern, targetWidthMm, patternIndex);
     if (nextIndex === null) break;
     patternIndex = nextIndex;
   }
 
-  return normalizeStripWidths(strips);
+  let fixed = ensureWidePlanksAtEdges(strips);
+  fixed = fillLayoutRemainder(fixed, safePattern, targetWidthMm);
+  return normalizeStripWidths(fixed);
 };
 
 export const buildStripsFromPattern = (

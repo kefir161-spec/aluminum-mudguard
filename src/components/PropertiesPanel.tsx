@@ -88,15 +88,6 @@ export const PropertiesPanel = ({
       Подогнать под размер заказчика
     </label>
 
-    <label>Отступ до первого троса, мм (100–150)</label>
-    <NumericMmField
-      value={config.cableEdgeOffsetMm ?? 100}
-      min={100}
-      max={150}
-      fractionDigits={0}
-      onCommit={(value) => onDimension('cableEdgeOffsetMm', value)}
-    />
-
     <label>Клиент</label>
     <input className="field-full" value={config.clientName || ''} onChange={(event) => onClientName(event.target.value)} />
     <label>Менеджер</label>

@@ -5,13 +5,19 @@ import type { CalculationResult, ProductConfig } from '../domain/types';
 import { getLengthPxPerMm } from '../data/profileTextures';
 import { ProfileTextureDefs } from './ProfileTextureDefs';
 import { ProfileStripGraphics } from './ProfileStripGraphics';
-import { buildLayoutGeometry, cableYPositions } from './layoutGeometry';
+import { buildLayoutGeometry, cablePositionsAlongLength } from './layoutGeometry';
 import { CableSpacingAnnotation, HorizontalDimension, VerticalDimension } from './DimensionLines';
-import { computeSheetLayout } from './drawingLayout';
+import {
+  computeSheetLayout,
+  LEGEND_ROW_H,
+  LEGEND_SWATCH_H,
+  LEGEND_SWATCH_W,
+} from './drawingLayout';
 import { ApprovalBlock } from './ApprovalBlock';
 import { DrawingSizeInfo } from './DrawingSizeInfo';
 import { getCalculatedLayoutWidthMm, getRequestedLayoutWidthMm } from './drawingSizeMetrics';
-import { DrawingSpecTable, SPEC_TABLE_WIDTH } from './DrawingSpecTable';
+import { DrawingSpecTable } from './DrawingSpecTable';
+import { LegendSwatch } from './LegendSwatch';
 
 type Props = {
   config: ProductConfig;
@@ -19,39 +25,47 @@ type Props = {
   forExport?: boolean;
 };
 
-const LEGEND_ITEM_H = 30;
-const WIDTH_DIM_LINE_GAP = 20;
+const WIDTH_DIM_GAP = 24;
 
 export const DrawingSheet = ({ config, calculation, forExport = false }: Props) => {
   const width = DRAWING_EXPORT_WIDTH;
   const height = DRAWING_EXPORT_HEIGHT;
   const cableLayout = calculation.cableLayout;
   const cableCount = cableLayout?.count ?? 0;
+  const hasCableAnnotation = Boolean(cableLayout && cableLayout.spacingsMm.length > 0);
 
-  const layout = computeSheetLayout({
-    sheetW: width,
-    hasCableAnnotation: Boolean(cableLayout && cableLayout.spacingsMm.length > 0),
-  });
-
-  const matLayout = buildLayoutGeometry(config, layout.matW, layout.matX);
-  const layoutRects = matLayout.rects;
-  const cableLinesY =
-    cableLayout && config.totalLengthMm > 0
-      ? cableYPositions(config.totalLengthMm, layout.matY, layout.matH, cableLayout.positionsMm)
-      : [];
   const legendTypes = deriveLegendTypesFromStrips(
     config.strips,
     config.layoutPattern,
     config.autoFillEnabled ?? false,
   );
-  const legendH = legendTypes.length > 0 ? 34 + legendTypes.length * LEGEND_ITEM_H + 16 : layout.legendH;
+  const layout = computeSheetLayout({
+    sheetW: width,
+    sheetH: height,
+    hasCableAnnotation,
+    legendCount: legendTypes.length,
+  });
+
+  const matLayout = buildLayoutGeometry(config, layout.matW, layout.matH, layout.matX, layout.matY, {
+    fit: 'contain',
+    align: 'center',
+  });
+  const layoutRects = matLayout.rects;
+  const cableLinesX =
+    cableLayout && config.totalLengthMm > 0
+      ? cablePositionsAlongLength(
+          config.totalLengthMm,
+          matLayout.matX,
+          matLayout.matWidthPx,
+          cableLayout.positionsMm,
+        )
+      : [];
   const requestedWidthMm = getRequestedLayoutWidthMm(calculation);
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
-  const widthScale = matLayout.scale;
-  const lengthPxPerMm = getLengthPxPerMm(layout.matH, config.totalLengthMm);
-  const widthToX = (widthMm: number): number => layout.matX + widthMm * widthScale;
-  const calculatedDimY = layout.widthDimY;
-  const requestedDimY = layout.widthDimY - WIDTH_DIM_LINE_GAP;
+  const lengthPxPerMm = getLengthPxPerMm(matLayout.matWidthPx, config.totalLengthMm);
+  const widthToY = (widthMm: number): number => matLayout.matY + widthMm * matLayout.scale;
+  const requestedDimX = layout.widthDimX + WIDTH_DIM_GAP;
+  const calculatedDimX = layout.widthDimX;
   const layoutComplete = !calculation.isUnderfilled;
   const drawingWarnings = getScraperEdgeWarnings(config.strips, layoutComplete);
 
@@ -76,14 +90,15 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
         preserveAspectRatio="xMidYMid meet"
         className="drawing-sheet-svg"
       >
-        <ProfileTextureDefs widthScale={widthScale} lengthPxPerMm={lengthPxPerMm} idPrefix="drawing" />
-        <rect x={20} y={20} width={width - 40} height={height - 40} fill="#fff" stroke="#111827" strokeWidth={1.5} />
+        <ProfileTextureDefs widthScale={matLayout.scale} lengthPxPerMm={lengthPxPerMm} idPrefix="drawing" />
 
-        <text x={48} y={52} className="sheet-title">
+        <rect x={16} y={16} width={width - 32} height={height - 32} fill="#fff" stroke="#111827" strokeWidth={1.5} />
+
+        <text x={40} y={48} className="sheet-title">
           Технический лист грязезащитного покрытия
         </text>
-        <text x={48} y={76} className="sheet-meta">{`Проект: ${config.projectName}`}</text>
-        <text x={48} y={96} className="sheet-meta">{`Клиент: ${config.clientName || '—'} · Менеджер: ${config.managerName || '—'}`}</text>
+        <text x={40} y={70} className="sheet-meta">{`Проект: ${config.projectName}`}</text>
+        <text x={40} y={90} className="sheet-meta">{`Клиент: ${config.clientName || '—'} · Менеджер: ${config.managerName || '—'}`}</text>
 
         <ApprovalBlock
           x={layout.approvalX}
@@ -92,19 +107,39 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           year={new Date(config.updatedAt).getFullYear()}
         />
 
-        <rect x={layout.matX} y={layout.matY} width={layout.matW} height={layout.matH} fill="#fff" stroke="#1f2937" />
+        {hasCableAnnotation && cableLayout && (
+          <CableSpacingAnnotation
+            matX={matLayout.matX}
+            matY={matLayout.matY}
+            matW={matLayout.matWidthPx}
+            totalLengthMm={config.totalLengthMm}
+            edgeOffsetMm={cableLayout.edgeOffsetMm}
+            spacingsMm={cableLayout.spacingsMm}
+          />
+        )}
+
+        <rect
+          x={matLayout.matX}
+          y={matLayout.matY}
+          width={matLayout.matWidthPx}
+          height={matLayout.matHeightPx}
+          fill="#fff"
+          stroke="#1f2937"
+          strokeWidth={1.2}
+        />
+
         {layoutRects.map((rect, index) => {
           if (rect.kind === 'gap') {
             return (
               <rect
                 key={`gap-${index}`}
                 x={rect.x}
-                y={layout.matY}
+                y={rect.y}
                 width={rect.width}
-                height={layout.matH}
-                fill="#f8fafc"
+                height={rect.height}
+                fill="#f1f5f9"
                 stroke="#94a3b8"
-                strokeWidth={0.4}
+                strokeWidth={0.35}
                 strokeDasharray="2 2"
               />
             );
@@ -116,73 +151,65 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
               key={strip.id}
               type={strip.type}
               x={rect.x}
-              y={layout.matY}
+              y={rect.y}
               width={rect.width}
-              height={layout.matH}
+              height={rect.height}
+              widthScale={matLayout.scale}
               lengthPxPerMm={lengthPxPerMm}
+              lengthAlong="x"
               stroke="#334155"
-              strokeWidth={0.7}
+              strokeWidth={0.5}
               idPrefix="drawing"
             />
           );
         })}
 
-        {cableLinesY.map((y, index) => (
+        {cableLinesX.map((lineX, index) => (
           <line
             key={`cable-guide-${index}`}
-            x1={layout.matX}
-            y1={y}
-            x2={layout.matX + layout.matW}
-            y2={y}
-            stroke="#cbd5e1"
-            strokeWidth={0.45}
-            strokeDasharray="6 5"
+            x1={lineX}
+            y1={matLayout.matY}
+            x2={lineX}
+            y2={matLayout.matY + matLayout.matHeightPx}
+            stroke="#94a3b8"
+            strokeWidth={0.5}
+            strokeDasharray="5 4"
           />
         ))}
 
         <HorizontalDimension
-          x1={layout.matX}
-          x2={widthToX(requestedWidthMm)}
-          y={requestedDimY}
-          objectY1={layout.matY}
-          objectY2={layout.matY}
-          label={`Запрашиваемый ${Math.round(requestedWidthMm)}`}
-        />
-        <HorizontalDimension
-          x1={layout.matX}
-          x2={widthToX(calculatedWidthMm)}
-          y={calculatedDimY}
-          objectY1={layout.matY}
-          objectY2={layout.matY}
-          label={`Расчетный ${Math.round(calculatedWidthMm)}`}
+          x1={matLayout.matX}
+          x2={matLayout.matX + matLayout.matWidthPx}
+          y={layout.lengthDimY}
+          objectY1={matLayout.matY + matLayout.matHeightPx}
+          objectY2={matLayout.matY + matLayout.matHeightPx}
+          label={`${config.totalLengthMm.toFixed(0)}`}
         />
 
         <VerticalDimension
-          x={layout.lengthDimX}
-          y1={layout.matY}
-          y2={layout.matY + layout.matH}
-          objectX1={layout.matX + layout.matW}
-          objectX2={layout.matX + layout.matW}
-          label={`${config.totalLengthMm.toFixed(0)}`}
-          labelOffset={11}
+          x={requestedDimX}
+          y1={matLayout.matY}
+          y2={widthToY(requestedWidthMm)}
+          objectX1={matLayout.matX + matLayout.matWidthPx}
+          objectX2={matLayout.matX + matLayout.matWidthPx}
+          label={`Запрашиваемый ${Math.round(requestedWidthMm)}`}
+          labelOffset={12}
         />
-
-        {cableLayout && cableLayout.spacingsMm.length > 0 && (
-          <CableSpacingAnnotation
-            matX={layout.matX}
-            matY={layout.matY}
-            matH={layout.matH}
-            totalLengthMm={config.totalLengthMm}
-            edgeOffsetMm={cableLayout.edgeOffsetMm}
-            spacingsMm={cableLayout.spacingsMm}
-          />
-        )}
+        <VerticalDimension
+          x={calculatedDimX}
+          y1={matLayout.matY}
+          y2={widthToY(calculatedWidthMm)}
+          objectX1={matLayout.matX + matLayout.matWidthPx}
+          objectX2={matLayout.matX + matLayout.matWidthPx}
+          label={`Расчетный ${Math.round(calculatedWidthMm)}`}
+          labelOffset={12}
+        />
 
         <rect
           x={layout.legendX}
           y={layout.legendY}
           width={layout.legendW}
-          height={legendH}
+          height={layout.legendH}
           fill="#f8fafc"
           stroke="#cbd5e1"
           strokeWidth={1}
@@ -191,39 +218,35 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
         <text x={layout.legendX + 14} y={layout.legendY + 22} className="sheet-subtitle">
           Легенда
         </text>
-        {legendTypes.map((type, i) => (
-          <g key={`legend-${i}-${type}`}>
-            <ProfileStripGraphics
-              type={type}
-              x={layout.legendX + 14}
-              y={layout.legendY + 34 + i * LEGEND_ITEM_H}
-              width={20}
-              height={14}
-              lengthPxPerMm={lengthPxPerMm}
-              stroke="#475569"
-              strokeWidth={0.6}
-              idPrefix="drawing"
-            />
-            <text
-              x={layout.legendX + 42}
-              y={layout.legendY + 45 + i * LEGEND_ITEM_H}
-              className="sheet-meta sheet-meta--legend"
-            >
-              {moduleDefinitions[type].shortName}
-            </text>
-          </g>
-        ))}
+        {legendTypes.map((type, i) => {
+          const rowY = layout.legendY + 34 + i * LEGEND_ROW_H;
+          return (
+            <g key={`legend-${type}-${i}`}>
+              <LegendSwatch
+                type={type}
+                x={layout.legendX + 14}
+                y={rowY}
+                width={LEGEND_SWATCH_W}
+                height={LEGEND_SWATCH_H}
+              />
+              <text x={layout.legendX + 14 + LEGEND_SWATCH_W + 10} y={rowY + 15} className="sheet-meta sheet-meta--legend">
+                {moduleDefinitions[type].shortName}
+              </text>
+            </g>
+          );
+        })}
 
-        <text x={48} y={layout.specY} className="sheet-subtitle">
-          Спецификация
-        </text>
-        <DrawingSpecTable x={48} y={layout.specY + 14} calculation={calculation} cableCount={cableCount} />
         <DrawingSizeInfo
-          x={48 + SPEC_TABLE_WIDTH + 32}
-          y={layout.specY + 28}
+          x={layout.sizeInfoX}
+          y={layout.sizeInfoY}
           config={config}
           calculation={calculation}
         />
+
+        <text x={40} y={layout.specY} className="sheet-subtitle">
+          Спецификация
+        </text>
+        <DrawingSpecTable x={40} y={layout.specY + 16} calculation={calculation} cableCount={cableCount} />
       </svg>
     </div>
   );

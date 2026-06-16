@@ -32,6 +32,7 @@ function App() {
     setDimensions,
     addStrip,
     addMultipleStrips,
+    removeStrip,
     selectStrip,
     updateSelectedStrip,
     applyPreset,
@@ -148,7 +149,12 @@ function App() {
           <Tabs activeTab={activeTab} onChange={setActiveTab} />
           <section className="panel canvas-area" id="canvas-area-export">
             {activeTab === 'constructor' && (
-              <TopViewRenderer config={config} selectedStripId={selectedStripId} onStripClick={selectStrip} />
+              <TopViewRenderer
+                config={config}
+                selectedStripId={selectedStripId}
+                onStripClick={selectStrip}
+                onStripRemove={removeStrip}
+              />
             )}
             {activeTab === 'drawing' && <DrawingSheet config={config} calculation={calculation} forExport={false} />}
             {activeTab === 'spec' && <SpecPanel config={config} calculation={calculation} />}

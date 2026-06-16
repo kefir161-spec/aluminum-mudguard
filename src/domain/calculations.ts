@@ -6,7 +6,6 @@ import { resolveLayoutDimensions } from './gapFit';
 import { getOrderTargetDimensions } from './pitDimensions';
 import type { CalculationResult, ProductConfig, Strip } from './types';
 import { pricingConfig } from './pricing';
-import { CABLE_EDGE_OFFSET_DEFAULT_MM } from './constants';
 
 export const MM2_TO_M2 = 1_000_000;
 
@@ -28,10 +27,7 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
   const totalLayoutWidthMm = resolved.nominalWidthMm;
   const effectiveLayoutWidthMm = resolved.effectiveWidthMm;
   const totalAreaM2 = (effectiveLayoutWidthMm * config.totalLengthMm) / MM2_TO_M2;
-  const cableLayout = computeCableLayout(
-    config.totalLengthMm,
-    config.cableEdgeOffsetMm ?? CABLE_EDGE_OFFSET_DEFAULT_MM,
-  );
+  const cableLayout = computeCableLayout(config.totalLengthMm);
 
   const byType = moduleTypeOrder.map((type): CalculationResult['byType'][number] => {
     const strips = config.strips.filter((strip) => strip.type === type);

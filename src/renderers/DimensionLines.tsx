@@ -108,7 +108,7 @@ const MIN_SEGMENT_PX = 20;
 type CableAnnotationProps = {
   matX: number;
   matY: number;
-  matH: number;
+  matW: number;
   totalLengthMm: number;
   edgeOffsetMm: number;
   spacingsMm: number[];
@@ -117,6 +117,9 @@ type CableAnnotationProps = {
 
 const mmToY = (mm: number, totalLengthMm: number, viewTop: number, viewHeight: number): number =>
   viewTop + (mm / totalLengthMm) * viewHeight;
+
+const mmToX = (mm: number, totalLengthMm: number, viewLeft: number, viewWidth: number): number =>
+  viewLeft + (mm / totalLengthMm) * viewWidth;
 
 type ChainSegment = {
   startMm: number;
@@ -204,11 +207,57 @@ export const VerticalDimensionChain = ({
   </g>
 );
 
-/** Размеры тросов слева: цепочка на всю высоту ковра, без текстового блока. */
+/** Цепочка горизонтальных размеров вдоль длины ковра. */
+export const HorizontalDimensionChain = ({
+  y,
+  objectY,
+  totalLengthMm,
+  viewLeft,
+  viewWidth,
+  segments,
+  className = 'dim-annotation',
+}: {
+  y: number;
+  objectY: number;
+  totalLengthMm: number;
+  viewLeft: number;
+  viewWidth: number;
+  segments: ChainSegment[];
+  className?: string;
+}) => (
+  <g className={className}>
+    {segments.map((segment, index) => {
+      const anchorX1 = mmToX(segment.startMm, totalLengthMm, viewLeft, viewWidth);
+      const anchorX2 = mmToX(segment.endMm, totalLengthMm, viewLeft, viewWidth);
+      if (Math.abs(anchorX2 - anchorX1) < 2) return null;
+
+      const dimY = y;
+      const spanPx = Math.abs(anchorX2 - anchorX1);
+      const compact = spanPx < MIN_SEGMENT_PX;
+      const center = (anchorX1 + anchorX2) / 2;
+      const dimX1 = compact ? center - MIN_SEGMENT_PX / 2 : anchorX1;
+      const dimX2 = compact ? center + MIN_SEGMENT_PX / 2 : anchorX2;
+
+      return (
+        <HorizontalDimension
+          key={`${segment.label}-${segment.startMm}-${index}`}
+          x1={dimX1}
+          x2={dimX2}
+          y={dimY}
+          objectY1={objectY}
+          objectY2={objectY}
+          label={segment.label}
+        />
+      );
+    })}
+  </g>
+);
+
+/** Размеры тросов сверху: цепочка вдоль длины ковра. */
 export const CableSpacingAnnotation = ({
   matX,
   matY,
-  matH,
+  matW,
   totalLengthMm,
   edgeOffsetMm,
   spacingsMm,
@@ -217,12 +266,12 @@ export const CableSpacingAnnotation = ({
   const segments = buildCableChainSegments(totalLengthMm, edgeOffsetMm, spacingsMm);
 
   return (
-    <VerticalDimensionChain
-      x={matX - 26}
-      objectX={matX}
+    <HorizontalDimensionChain
+      y={matY - 34}
+      objectY={matY}
       totalLengthMm={totalLengthMm}
-      viewTop={matY}
-      viewHeight={matH}
+      viewLeft={matX}
+      viewWidth={matW}
       segments={segments}
       className={className}
     />

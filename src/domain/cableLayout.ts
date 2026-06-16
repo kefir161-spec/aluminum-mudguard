@@ -14,15 +14,18 @@ export type CableLayout = {
   count: number;
 };
 
-const clampEdgeOffset = (value: number): number =>
-  Math.min(CABLE_EDGE_OFFSET_MAX_MM, Math.max(CABLE_EDGE_OFFSET_MIN_MM, value));
-
 /** Чем меньше — тем «красивее» число для чертежа. */
 export const spacingNiceness = (value: number): number => {
   if (value % 10 === 0) return 0;
   if (value % 5 === 0) return 3;
   const tail = value % 10;
   return 10 + Math.min(tail, 10 - tail);
+};
+
+const offsetNiceness = (value: number): number => {
+  if (value % 10 === 0) return 0;
+  if (value % 5 === 0) return 2;
+  return 5;
 };
 
 const isValidSpacing = (value: number): boolean =>
@@ -41,17 +44,16 @@ const buildLayoutFromSpacings = (offset: number, spacings: number[]): CableLayou
   };
 };
 
-/** Расчёт позиций тросов вдоль длины ковра. Все промежутки между тросами одинаковые. */
-export const computeCableLayout = (
-  lengthMm: number,
-  edgeOffsetMm = CABLE_EDGE_OFFSET_DEFAULT_MM,
-): CableLayout | null => {
-  const offset = clampEdgeOffset(edgeOffsetMm);
-  const span = lengthMm - 2 * offset;
+const layoutScore = (layout: CableLayout): number => {
+  const spacingScore =
+    layout.spacingsMm.length > 0
+      ? Math.min(...layout.spacingsMm.map(spacingNiceness))
+      : spacingNiceness(CABLE_SPACING_MIN_MM);
+  return spacingScore * 100 + offsetNiceness(layout.edgeOffsetMm);
+};
 
-  if (lengthMm <= 0) {
-    return { positionsMm: [], spacingsMm: [], edgeOffsetMm: offset, count: 0 };
-  }
+const computeCableLayoutForOffset = (lengthMm: number, offset: number): CableLayout | null => {
+  const span = lengthMm - 2 * offset;
 
   if (span < CABLE_SPACING_MIN_MM) {
     if (lengthMm >= 2 * offset) {
@@ -81,6 +83,32 @@ export const computeCableLayout = (
     bestScore = score;
     bestSpacingCount = spacingCount;
     bestLayout = buildLayoutFromSpacings(offset, Array.from({ length: spacingCount }, () => spacing));
+  }
+
+  return bestLayout;
+};
+
+/**
+ * Расчёт позиций тросов вдоль длины ковра.
+ * Отступ от края подбирается автоматически в диапазоне 100–150 мм.
+ */
+export const computeCableLayout = (lengthMm: number): CableLayout | null => {
+  if (lengthMm <= 0) {
+    return { positionsMm: [], spacingsMm: [], edgeOffsetMm: CABLE_EDGE_OFFSET_DEFAULT_MM, count: 0 };
+  }
+
+  let bestLayout: CableLayout | null = null;
+  let bestScore = Infinity;
+
+  for (let offset = CABLE_EDGE_OFFSET_MIN_MM; offset <= CABLE_EDGE_OFFSET_MAX_MM; offset += 1) {
+    const layout = computeCableLayoutForOffset(lengthMm, offset);
+    if (!layout || layout.count < 1) continue;
+
+    const score = layoutScore(layout);
+    if (score >= bestScore) continue;
+
+    bestScore = score;
+    bestLayout = layout;
   }
 
   return bestLayout;

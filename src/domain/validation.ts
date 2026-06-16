@@ -42,11 +42,6 @@ export const validateConfig = (config: ProductConfig): string[] => {
     }
   }
 
-  const edgeOffset = config.cableEdgeOffsetMm ?? 100;
-  if (edgeOffset < CABLE_EDGE_OFFSET_MIN_MM || edgeOffset > CABLE_EDGE_OFFSET_MAX_MM) {
-    warnings.push(`Отступ до первого троса: ${CABLE_EDGE_OFFSET_MIN_MM}–${CABLE_EDGE_OFFSET_MAX_MM} мм.`);
-  }
-
   warnings.push('Цены используются для демонстрации и требуют уточнения.');
   return warnings;
 };
@@ -57,7 +52,7 @@ export const validateConfigWithCalculation = (
 ): string[] => {
   const warnings = validateConfig(config);
 
-  if (calculation.cableLayout === null && config.totalLengthMm > 2 * (config.cableEdgeOffsetMm ?? 100)) {
+  if (calculation.cableLayout === null && config.totalLengthMm > 2 * CABLE_EDGE_OFFSET_MIN_MM) {
     warnings.push(
       `Не удалось разместить тросы: шаг ${CABLE_SPACING_MIN_MM}–${CABLE_SPACING_MAX_MM} мм (целые значения), отступ ${CABLE_EDGE_OFFSET_MIN_MM}–${CABLE_EDGE_OFFSET_MAX_MM} мм.`,
     );

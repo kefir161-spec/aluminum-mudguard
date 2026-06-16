@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { MODULE_GAP_MM, PLANK_WIDTH_MM, SCRAPER_WIDTH_MM } from './constants';
+import { computeCableLayout } from './cableLayout';
 import {
   computeLayoutWidth,
   countPlugs,
   createStrip,
   deriveLegendTypesFromStrips,
   getStripNominalWidth,
+  hasScraperAtEdge,
   patternHasScraperAtEdge,
   rebuildLayoutToTargetWidth,
 } from './layoutRules';
@@ -51,6 +53,12 @@ describe('layoutRules', () => {
     const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
     expect(strips.length).toBeGreaterThan(0);
     expect(computeLayoutWidth(strips)).toBeLessThanOrEqual(1000 + 0.01);
+  });
+
+  it('does not end autofill layout with scraper when pattern ends with scraper', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'scraper'], 1000);
+    expect(strips.length).toBeGreaterThan(0);
+    expect(hasScraperAtEdge(strips)).toBe(false);
   });
 
   it('counts plugs for non-scraper strips only', () => {
@@ -112,6 +120,21 @@ describe('gapFit', () => {
     expect(resolved.fitApplied).toBe(true);
     expect(resolved.effectiveWidthMm).toBeGreaterThan(nominal);
     expect(Math.abs(resolved.remainderMm)).toBeLessThanOrEqual(7);
+  });
+});
+
+describe('cableLayout', () => {
+  it('places cables for 1200 mm length', () => {
+    const layout = computeCableLayout(1200);
+    expect(layout).not.toBeNull();
+    expect(layout?.count).toBeGreaterThanOrEqual(2);
+    expect(layout?.spacingsMm.every((spacing) => spacing >= 300 && spacing <= 400)).toBe(true);
+  });
+
+  it('places cables for 1180 mm carpet (приямок 1200)', () => {
+    const layout = computeCableLayout(1180);
+    expect(layout).not.toBeNull();
+    expect(layout?.count).toBeGreaterThanOrEqual(2);
   });
 });
 

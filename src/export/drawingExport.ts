@@ -3,7 +3,7 @@ import { exportNodeToPdf } from './exportPdf';
 import { exportNodeToPng } from './exportPng';
 
 export const DRAWING_EXPORT_WIDTH = 1100;
-export const DRAWING_EXPORT_HEIGHT = 780;
+export const DRAWING_EXPORT_HEIGHT = 880;
 export const DRAWING_EXPORT_ID = 'drawing-sheet-export';
 
 const sanitizeFileName = (name: string): string =>

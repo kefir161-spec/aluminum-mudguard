@@ -7,12 +7,14 @@ import {
 import {
   buildStripsFromPattern,
   canInsertScraperAt,
+  computeLayoutWidth,
   createStrip,
   derivePatternFromStrips,
   getStripNominalWidth,
   hasScraperAtStart,
   normalizeStrips,
   rebuildLayoutToTargetWidth,
+  sanitizePatternForAutofill,
   SCRAPER_AT_START_WARNING,
 } from '../domain/layoutRules';
 import type { DimensionSource, LayoutPreset, ModuleType, ProductConfig, Strip } from '../domain/types';
@@ -38,6 +40,7 @@ type StoreState = {
   ) => void;
   addStrip: (type: ModuleType, widthMm?: number, afterSelected?: boolean) => void;
   addMultipleStrips: (type: ModuleType, count: number) => void;
+  removeStrip: (stripId: string) => void;
   selectStrip: (stripId?: string) => void;
   updateSelectedStrip: (partial: Partial<Pick<Strip, 'type' | 'widthMm'>>) => void;
   applyPreset: (preset: LayoutPreset) => void;
@@ -177,6 +180,12 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
 
       strips.splice(insertAt, 0, strip);
       const normalized = normalizeStrips(strips);
+      const targetWidth = getOrderTargetDimensions(state.config).totalWidthMm;
+      if (computeLayoutWidth(normalized) > targetWidth + 0.01) {
+        return {
+          stripActionWarning: `Не удалось добавить профиль: превышена заказная ширина ковра (${Math.round(targetWidth)} мм). Удалите лишние планки.`,
+        };
+      }
 
       return {
         config: withUpdatedAt(
@@ -190,6 +199,7 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
     set((state) => {
       const strips = [...state.config.strips];
       const addCount = Math.max(1, count);
+      const targetWidth = getOrderTargetDimensions(state.config).totalWidthMm;
 
       for (let index = 0; index < addCount; index += 1) {
         if (type === 'scraper' && strips.length === 0) {
@@ -198,12 +208,29 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
           };
         }
         strips.push(createStrip(type));
+        const normalized = normalizeStrips(strips);
+        if (computeLayoutWidth(normalized) > targetWidth + 0.01) {
+          return {
+            stripActionWarning: `Не удалось добавить профили: превышена заказная ширина ковра (${Math.round(targetWidth)} мм).`,
+          };
+        }
       }
       const normalized = normalizeStrips(strips);
       return {
         config: withUpdatedAt(
           syncOrderDimensions({ ...state.config, strips: normalized, autoFillEnabled: false }),
         ),
+        stripActionWarning: undefined,
+      };
+    }),
+  removeStrip: (stripId) =>
+    set((state) => {
+      const strips = state.config.strips.filter((strip) => strip.id !== stripId);
+      return {
+        config: withUpdatedAt(
+          syncOrderDimensions({ ...state.config, strips: normalizeStrips(strips), autoFillEnabled: false }),
+        ),
+        selectedStripId: strips[0]?.id,
         stripActionWarning: undefined,
       };
     }),
@@ -255,10 +282,11 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
     }),
   autoFillRemainder: () =>
     set((state) => {
-      const pattern =
+      const rawPattern =
         state.config.autoFillEnabled && state.config.layoutPattern?.length
           ? state.config.layoutPattern
           : derivePatternFromStrips(state.config.strips);
+      const pattern = sanitizePatternForAutofill(rawPattern);
       if (pattern.length === 0) {
         return {
           stripActionWarning:
