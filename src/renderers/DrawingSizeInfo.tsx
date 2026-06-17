@@ -1,4 +1,5 @@
 import type { CalculationResult, ProductConfig } from '../domain/types';
+import { formatDrawingSizePair } from '../domain/dimensionLabels';
 import { getCalculatedLayoutWidthMm } from './drawingSizeMetrics';
 
 type Props = {
@@ -8,14 +9,10 @@ type Props = {
   calculation: CalculationResult;
 };
 
-/** Ширина — горизонталь (длина профиля), длина — вертикаль (ширина полотна). */
-const formatSizePair = (profileLengthMm: number, layoutLengthMm: number): string =>
-  `Ширина ${Math.round(profileLengthMm)} х Длина ${Math.round(layoutLengthMm)} мм`;
-
 export const DrawingSizeInfo = ({ x, y, config, calculation }: Props) => {
-  const requestedLine = `Запрашиваемый размер: ${formatSizePair(config.orderLengthMm, config.orderWidthMm)}`;
+  const requestedLine = `Запрашиваемый размер: ${formatDrawingSizePair(config.orderLengthMm, config.orderWidthMm)}`;
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
-  const calculatedLine = `Расчетный размер: ${formatSizePair(config.totalLengthMm, calculatedWidthMm)}`;
+  const calculatedLine = `Расчетный размер: ${formatDrawingSizePair(config.totalLengthMm, calculatedWidthMm)}`;
 
   return (
     <g className="sheet-size-info">

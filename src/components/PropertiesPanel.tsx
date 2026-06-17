@@ -1,6 +1,12 @@
 import { derivePatternFromStrips, getDisplayLayoutPattern } from '../domain/layoutRules';
 import { moduleTypeOrder, moduleDefinitions } from '../domain/moduleDefinitions';
 import { PIT_INSET_MM } from '../domain/constants';
+import {
+  carpetLengthHint,
+  carpetLengthLabel,
+  carpetWidthHint,
+  carpetWidthLabel,
+} from '../domain/dimensionLabels';
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
 import { NumericMmField } from './NumericMmField';
 
@@ -57,27 +63,23 @@ export const PropertiesPanel = ({
       <option value="pit">Размер приямка (−{PIT_INSET_MM} мм к габариту)</option>
     </select>
 
-    <label>{config.dimensionSource === 'pit' ? 'Ширина приямка, мм' : 'Ширина ковра, мм'}</label>
-    <NumericMmField
-      value={config.orderWidthMm}
-      min={100}
-      fractionDigits={0}
-      onCommit={(value) => onDimension('orderWidthMm', value)}
-    />
-    {config.dimensionSource === 'pit' && (
-      <p className="muted">Ширина полотна ковра: {config.totalWidthMm.toFixed(0)} мм</p>
-    )}
-
-    <label>{config.dimensionSource === 'pit' ? 'Длина приямка, мм' : 'Длина ковра, мм'}</label>
+    <label>{carpetWidthLabel(config.dimensionSource)}</label>
     <NumericMmField
       value={config.orderLengthMm}
       min={100}
       fractionDigits={0}
       onCommit={(value) => onDimension('orderLengthMm', value)}
     />
-    {config.dimensionSource === 'pit' && (
-      <p className="muted">Длина полотна ковра: {config.totalLengthMm.toFixed(0)} мм</p>
-    )}
+    {config.dimensionSource === 'pit' && <p className="muted">{carpetWidthHint(config.totalLengthMm)}</p>}
+
+    <label>{carpetLengthLabel(config.dimensionSource)}</label>
+    <NumericMmField
+      value={config.orderWidthMm}
+      min={100}
+      fractionDigits={0}
+      onCommit={(value) => onDimension('orderWidthMm', value)}
+    />
+    {config.dimensionSource === 'pit' && <p className="muted">{carpetLengthHint(config.totalWidthMm)}</p>}
 
     <label className="checkbox-row">
       <input
@@ -116,7 +118,7 @@ export const PropertiesPanel = ({
       className="field-full btn-autofill"
       onClick={onAutoFill}
       disabled={seedPattern.length === 0}
-      title="Повторяет комбинацию профилей на полотне до заказной ширины. После автозаполнения при смене ширины ковра раскладка пересчитается автоматически."
+      title="Повторяет комбинацию профилей на полотне до заказной длины. После автозаполнения при смене длины ковра раскладка пересчитается автоматически."
     >
       Автозаполнить остаток
     </button>

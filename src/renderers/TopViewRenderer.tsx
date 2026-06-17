@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react';
 import type { ProductConfig } from '../domain/types';
+import { formatPitSubtitle } from '../domain/dimensionLabels';
 import { MODULE_GAP_MM } from '../domain/constants';
 import { getLengthPxPerMm } from '../data/profileTextures';
 import { ProfileTextureDefs } from './ProfileTextureDefs';
@@ -59,7 +60,9 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStrip
       <ProfileTextureDefs widthScale={layout.scale} lengthPxPerMm={lengthPxPerMm} />
       <text x={16} y={22} textAnchor="start" className="top-view-title">
         Вид сверху
-        {config.dimensionSource === 'pit' ? ` · приямок ${config.orderWidthMm}×${config.orderLengthMm} мм` : ''}
+        {config.dimensionSource === 'pit'
+          ? ` · ${formatPitSubtitle(config.orderLengthMm, config.orderWidthMm)}`
+          : ''}
       </text>
 
       <rect
@@ -140,7 +143,7 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStrip
         y={layout.matY - 16}
         objectY1={layout.matY}
         objectY2={layout.matY}
-        label={`${config.totalLengthMm.toFixed(0)}`}
+        label={`Ширина ${config.totalLengthMm.toFixed(0)}`}
       />
 
       <VerticalDimension
@@ -149,7 +152,7 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStrip
         y2={layout.matY + layout.matHeightPx}
         objectX1={layout.matX}
         objectX2={layout.matX}
-        label={`${config.totalWidthMm.toFixed(0)}`}
+        label={`Длина ${config.totalWidthMm.toFixed(0)}`}
         labelOffset={-8}
       />
 

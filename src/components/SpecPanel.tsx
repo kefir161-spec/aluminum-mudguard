@@ -14,8 +14,8 @@ export const SpecPanel = ({ config, calculation }: Props) => (
           <th>№</th>
           <th>Тип профиля</th>
           <th>Количество полос</th>
-          <th>Суммарная ширина, мм</th>
-          <th>Длина, мм</th>
+          <th>Суммарная длина, мм</th>
+          <th>Ширина, мм</th>
           <th>Площадь, м²</th>
           <th>Цена за м²</th>
           <th>Стоимость</th>
