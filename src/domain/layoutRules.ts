@@ -209,14 +209,11 @@ const appendNextFromPattern = (
   return patternIndex + 1;
 };
 
-/** Убирает скребки с краёв комбинации — по краям только широкие планки. */
+/** Убирает скребок только с начала комбинации — конец цикла может быть скребком (внутри полотна). */
 export const sanitizePatternForAutofill = (pattern: ModuleType[]): ModuleType[] => {
   const result = [...pattern];
   while (result.length > 0 && result[0] === 'scraper') {
     result.shift();
-  }
-  while (result.length > 0 && result[result.length - 1] === 'scraper') {
-    result.pop();
   }
   return result.length > 0 ? result : ['rubber'];
 };

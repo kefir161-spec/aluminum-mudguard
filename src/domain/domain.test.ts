@@ -61,6 +61,11 @@ describe('layoutRules', () => {
     expect(hasScraperAtEdge(strips)).toBe(false);
   });
 
+  it('keeps interior scrapers when autofill pattern ends with scraper', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'scraper'], 1000);
+    expect(strips.some((strip) => strip.type === 'scraper')).toBe(true);
+  });
+
   it('counts plugs for non-scraper strips only', () => {
     expect(countPlugs([strip('rubber'), strip('scraper')])).toBe(2);
   });

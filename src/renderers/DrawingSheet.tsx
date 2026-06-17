@@ -183,7 +183,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           y={layout.lengthDimY}
           objectY1={matLayout.matY + matLayout.matHeightPx}
           objectY2={matLayout.matY + matLayout.matHeightPx}
-          label={`${config.totalLengthMm.toFixed(0)}`}
+          label={`Ширина ${config.totalLengthMm.toFixed(0)}`}
         />
 
         <VerticalDimension
@@ -192,7 +192,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           y2={widthToY(requestedWidthMm)}
           objectX1={matLayout.matX + matLayout.matWidthPx}
           objectX2={matLayout.matX + matLayout.matWidthPx}
-          label={`Запрашиваемый ${Math.round(requestedWidthMm)}`}
+          label={`Длина запр. ${Math.round(requestedWidthMm)}`}
           labelOffset={12}
         />
         <VerticalDimension
@@ -201,7 +201,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           y2={widthToY(calculatedWidthMm)}
           objectX1={matLayout.matX + matLayout.matWidthPx}
           objectX2={matLayout.matX + matLayout.matWidthPx}
-          label={`Расчетный ${Math.round(calculatedWidthMm)}`}
+          label={`Длина расч. ${Math.round(calculatedWidthMm)}`}
           labelOffset={12}
         />
 
