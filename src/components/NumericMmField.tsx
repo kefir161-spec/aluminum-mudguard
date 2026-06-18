@@ -9,6 +9,7 @@ type Props = {
   fractionDigits?: number;
   disabled?: boolean;
   className?: string;
+  variant?: 'default' | 'mm';
 };
 
 const parseDraft = (raw: string): number | null => {
@@ -33,6 +34,7 @@ export const NumericMmField = ({
   fractionDigits = 0,
   disabled = false,
   className = 'field-full',
+  variant = 'default',
 }: Props) => {
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
@@ -49,27 +51,33 @@ export const NumericMmField = ({
     onCommit(clampValue(rounded, min, max));
   };
 
-  return (
-    <input
-      className={className}
-      type="text"
-      inputMode="decimal"
-      disabled={disabled}
-      value={focused ? draft : formattedValue}
-      onFocus={() => {
-        setFocused(true);
-        setDraft(formattedValue);
-      }}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => {
-        setFocused(false);
-        commit(draft);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.currentTarget.blur();
-        }
-      }}
-    />
-  );
+  const inputProps = {
+    type: 'text' as const,
+    inputMode: 'decimal' as const,
+    disabled,
+    value: focused ? draft : formattedValue,
+    onFocus: () => {
+      setFocused(true);
+      setDraft(formattedValue);
+    },
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => setDraft(event.target.value),
+    onBlur: () => {
+      setFocused(false);
+      commit(draft);
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') event.currentTarget.blur();
+    },
+  };
+
+  if (variant === 'mm') {
+    return (
+      <div className={`ui-mm-field ${className}`}>
+        <input className="ui-mm-field__input" {...inputProps} />
+        <span className="ui-mm-field__unit">мм</span>
+      </div>
+    );
+  }
+
+  return <input className={className} {...inputProps} />;
 };

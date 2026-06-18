@@ -8,7 +8,8 @@ export const exportNodeToPdf = async (
   options: ExportImageOptions = {},
 ): Promise<void> => {
   const dataUrl = await toPng(node, {
-    cacheBust: true,
+    cacheBust: false,
+    skipFonts: options.skipFonts ?? true,
     pixelRatio: options.pixelRatio ?? 2,
     backgroundColor: '#ffffff',
     width: options.width,

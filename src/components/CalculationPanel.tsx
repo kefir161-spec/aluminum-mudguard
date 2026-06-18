@@ -1,37 +1,96 @@
-import { useState } from 'react';
+import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { moduleDefinitions } from '../domain/moduleDefinitions';
 import type { CalculationResult } from '../domain/types';
 import { formatMoney, formatNumber } from '../domain/calculations';
+import { Button } from './ui/Button';
+import { MetricCard } from './ui/MetricCard';
+import { Panel } from './ui/Panel';
+import { StatusBadge } from './ui/StatusBadge';
 
 type Props = {
   calculation: CalculationResult;
   warnings: string[];
+  compact?: boolean;
+  onExpandDetails?: () => void;
+  showStatusBadge?: boolean;
+  footerNote?: string;
+};
+
+const getFillStatus = (calculation: CalculationResult): { tone: 'success' | 'warning' | 'error'; label: string } => {
+  if (calculation.isOverfilled) {
+    return { tone: 'error', label: `Переполнение ${Math.abs(calculation.remainderMm)} мм` };
+  }
+  if (calculation.isUnderfilled) {
+    return { tone: 'warning', label: `Остаток ${calculation.remainderMm} мм` };
+  }
+  if (calculation.fitApplied && calculation.isFullyFitted) {
+    return { tone: 'success', label: 'Подогнано под заказ' };
+  }
+  return { tone: 'success', label: 'Заполнено корректно' };
+};
+
+const primaryWarning = (warnings: string[]): string | undefined => warnings[0];
+
+const CalcFooterNote = ({ text }: { text: string }) => (
+  <p className="calc-panel__footer-note" role="status">
+    <AlertTriangle size={16} aria-hidden />
+    <strong>{text}</strong>
+  </p>
+);
+
+export const CalculationSummary = ({
+  calculation,
+  compact = false,
+  onExpandDetails,
+  showStatusBadge = true,
+  footerNote,
+}: Omit<Props, 'warnings'>) => {
+  const status = getFillStatus(calculation);
+  const stripCount = calculation.byType.reduce((sum, item) => sum + item.count, 0);
+
+  return (
+    <div className={`calc-summary${compact ? ' calc-summary--compact' : ''}`}>
+      <div className={`calc-summary__metrics${showStatusBadge ? '' : ' calc-summary__metrics--no-status'}`}>
+        {showStatusBadge && <StatusBadge tone={status.tone}>{status.label}</StatusBadge>}
+        <MetricCard label="Площадь" value={`${formatNumber(calculation.totalAreaM2, 3)} м²`} />
+        <MetricCard label="Полос" value={String(stripCount)} />
+        <MetricCard label="Стоимость" value={`${formatMoney(calculation.totalPrice)} ₽`} />
+      </div>
+      {compact && onExpandDetails && (
+        <Button variant="ghost" size="sm" onClick={onExpandDetails} className="calc-summary__expand">
+          Подробнее
+          <ChevronUp size={14} aria-hidden />
+        </Button>
+      )}
+      {footerNote && <CalcFooterNote text={footerNote} />}
+    </div>
+  );
 };
 
 export const CalculationPanel = ({ calculation, warnings }: Props) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const rows = calculation.byType.filter((row) => row.count > 0);
+  const footerWarning = useMemo(() => primaryWarning(warnings), [warnings]);
+  const extraWarnings = useMemo(() => (warnings.length > 1 ? warnings.slice(1) : []), [warnings]);
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <h2>Расчет</h2>
-        <button type="button" className="toggle-btn" onClick={() => setIsExpanded((prev) => !prev)}>
-          {isExpanded ? 'Свернуть' : 'Развернуть'}
-        </button>
-      </div>
+    <Panel className="calc-panel">
+      <CalculationSummary calculation={calculation} showStatusBadge={!footerWarning} />
+      <Button
+        variant="ghost"
+        size="sm"
+        fullWidth
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="calc-panel__toggle"
+        aria-expanded={isExpanded}
+      >
+        {isExpanded ? 'Свернуть детали' : 'Развернуть расчёт'}
+        {isExpanded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
+      </Button>
       {isExpanded && (
-        <div className="collapsible-content">
-          <ul className="calc-list">
-            {Math.abs(calculation.remainderMm) > 0 && (
-              <li className={calculation.isUnderfilled ? 'calc-gap-warning' : 'calc-gap-error'}>
-                {calculation.isUnderfilled
-                  ? `Остаток: ${calculation.remainderMm} мм`
-                  : `Переполнение: ${Math.abs(calculation.remainderMm)} мм`}
-              </li>
-            )}
-            <li>Площадь: {formatNumber(calculation.totalAreaM2, 3)} м²</li>
-            <li>Полос: {calculation.byType.reduce((sum, item) => sum + item.count, 0)}</li>
+        <div className="calc-panel__details">
+          <ul className="calc-detail-list">
             <li>Заглушки: {calculation.plugCount} шт.</li>
             <li>Втулки: {calculation.bushingCount} шт.</li>
             <li>
@@ -49,10 +108,9 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                 </li>
               </>
             )}
-            <li>Итоговая стоимость: {formatMoney(calculation.totalPrice)} ₽</li>
           </ul>
-          <div className="table-scroll">
-            <table className="table compact">
+          <div className="spec-table-wrap">
+            <table className="data-table data-table--compact">
               <thead>
                 <tr>
                   <th>Тип</th>
@@ -73,10 +131,10 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
               </tbody>
             </table>
           </div>
-          {warnings.length > 0 && (
-            <div className="warning-list">
-              {warnings.map((warning) => (
-                <p key={warning} className="warning">
+          {extraWarnings.length > 0 && (
+            <div className="calc-panel__extra-warnings">
+              {extraWarnings.map((warning) => (
+                <p key={warning} className="calc-panel__hint">
                   {warning}
                 </p>
               ))}
@@ -84,6 +142,7 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
           )}
         </div>
       )}
-    </section>
+      {footerWarning && <CalcFooterNote text={footerWarning} />}
+    </Panel>
   );
 };

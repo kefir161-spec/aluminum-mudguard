@@ -1,16 +1,14 @@
 import { getCompressionAllowance } from './compression';
-import { formatAllowance } from './formatAllowance';
 
 type GapWarningContext = {
   fitToOrder?: boolean;
   fitApplied?: boolean;
   isFullyFitted?: boolean;
   remainderMm?: number;
-  fitNote?: string;
 };
 
 /**
- * Сообщение о незаполнении / переполнении.
+ * Краткое сообщение о незаполнении / переполнении для UI.
  * «Ширина по планкам» = сумма ширин профилей + зазоры (без растяжения под заказ).
  */
 export const formatWidthGapWarning = (
@@ -31,8 +29,9 @@ export const formatWidthGapWarning = (
 
   if (context.fitApplied && context.remainderMm !== undefined && context.remainderMm !== 0) {
     const amount = Math.abs(context.remainderMm);
-    const sign = context.remainderMm > 0 ? 'незаполнено' : 'переполнение';
-    return `После подгонки ${sign} ${amount} мм (заказ ${order} мм, по планкам ${profileWidth} мм). ${context.fitNote ?? ''}`.trim();
+    return context.remainderMm > 0
+      ? `Остаток ${amount} мм — добавьте или смените планки.`
+      : `Переполнение ${amount} мм — уберите планки.`;
   }
 
   if (gapMm === 0) return null;
@@ -41,20 +40,20 @@ export const formatWidthGapWarning = (
 
   if (gapMm > 0) {
     if (context.fitToOrder) {
-      return `Незаполнено ${gapMm} мм: заказ ${order} мм, по планкам ${profileWidth} мм. Включите «Подогнать под размер заказчика» (допуск ${formatAllowance(allowance.minMm, allowance.maxMm)}).`;
+      return `Остаток ${gapMm} мм — подгонка не закрыла заказ.`;
     }
     if (gapMm <= Math.round(allowance.maxMm)) {
-      return `Незаполнено ${gapMm} мм: заказ ${order} мм, по планкам ${profileWidth} мм. Можно подогнать натяжением тросов (допуск ${formatAllowance(allowance.minMm, allowance.maxMm)}).`;
+      return `Остаток ${gapMm} мм — включите подгонку под заказ.`;
     }
-    return `Незаполнено ${gapMm} мм: заказ ${order} мм, по планкам ${profileWidth} мм. Добавьте профили или «Автозаполнение остатка».`;
+    return `Остаток ${gapMm} мм — добавьте планки.`;
   }
 
   const excess = Math.abs(gapMm);
   if (context.fitToOrder) {
-    return `Переполнение ${excess} мм: заказ ${order} мм, по планкам ${profileWidth} мм. Включите «Подогнать под размер заказчика» (допуск ${formatAllowance(allowance.minMm, allowance.maxMm)}).`;
+    return `Лишние ${excess} мм — подгонка не закрыла заказ.`;
   }
   if (excess <= Math.round(allowance.maxMm)) {
-    return `Переполнение ${excess} мм: заказ ${order} мм, по планкам ${profileWidth} мм. Можно подогнать натяжением тросов (допуск ${formatAllowance(allowance.minMm, allowance.maxMm)}).`;
+    return `Лишние ${excess} мм — включите подгонку под заказ.`;
   }
-  return `Переполнение ${excess} мм: по планкам ${profileWidth} мм при заказе ${order} мм. Удалите профили или увеличьте габарит.`;
+  return `Лишние ${excess} мм — уберите планки.`;
 };

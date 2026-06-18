@@ -228,6 +228,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
                 y={rowY}
                 width={LEGEND_SWATCH_W}
                 height={LEGEND_SWATCH_H}
+                forExport={forExport}
               />
               <text x={layout.legendX + 14 + LEGEND_SWATCH_W + 10} y={rowY + 15} className="sheet-meta sheet-meta--legend">
                 {moduleDefinitions[type].shortName}

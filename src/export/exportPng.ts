@@ -4,6 +4,7 @@ export type ExportImageOptions = {
   width?: number;
   height?: number;
   pixelRatio?: number;
+  skipFonts?: boolean;
 };
 
 export const exportNodeToPng = async (
@@ -12,7 +13,8 @@ export const exportNodeToPng = async (
   options: ExportImageOptions = {},
 ): Promise<void> => {
   const dataUrl = await toPng(node, {
-    cacheBust: true,
+    cacheBust: false,
+    skipFonts: options.skipFonts ?? true,
     pixelRatio: options.pixelRatio ?? 2,
     backgroundColor: '#ffffff',
     width: options.width,

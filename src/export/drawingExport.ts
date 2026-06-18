@@ -1,4 +1,5 @@
 import { syncFitLineBadges } from '../renderers/fitLineBadge';
+import { ensureExportImagesReady, patchExportImageHrefs, preloadPatchedImages } from './profileImageCache';
 import { exportNodeToPdf } from './exportPdf';
 import { exportNodeToPng } from './exportPng';
 
@@ -11,11 +12,7 @@ const sanitizeFileName = (name: string): string =>
 
 const waitForPaint = (): Promise<void> =>
   new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => resolve());
-      });
-    });
+    requestAnimationFrame(() => resolve());
   });
 
 export const getDrawingExportNode = (): HTMLElement => {
@@ -31,9 +28,12 @@ const exportFromNode = async (
   fileName: string,
   format: 'pdf' | 'png',
 ): Promise<void> => {
+  await ensureExportImagesReady();
   await document.fonts.ready;
   await waitForPaint();
   syncFitLineBadges(node);
+  patchExportImageHrefs(node);
+  await preloadPatchedImages(node);
   await waitForPaint();
   const options = { width: DRAWING_EXPORT_WIDTH, height: DRAWING_EXPORT_HEIGHT, pixelRatio: 2 };
   if (format === 'pdf') {

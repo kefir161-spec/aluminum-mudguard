@@ -20,7 +20,7 @@ import {
 import type { DimensionSource, LayoutPreset, ModuleType, ProductConfig, Strip } from '../domain/types';
 import { clampCableEdgeOffset, clampOrderDimensionMm, clampMm } from '../domain/numbers';
 import { productionConstants } from '../domain/validation';
-import { createDemoProjects } from '../data/demoProjects';
+import { createDemoProjects, demoProjectIdSet } from '../data/demoProjects';
 import { deleteProjectById, loadStorage, upsertProject } from '../storage/projectStorage';
 type ViewTab = 'constructor' | 'drawing' | 'spec';
 
@@ -367,7 +367,13 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
   loadDemoProjects: () =>
     set((state) => {
       const demos = createDemoProjects().map(normalizeConfig);
-      const projects = [...demos, ...state.projects];
-      return { projects };
+      const demoNames = new Set(demos.map((demo) => demo.projectName));
+      const otherProjects = state.projects.filter(
+        (project) => !demoProjectIdSet.has(project.id) && !demoNames.has(project.projectName),
+      );
+      const demosAlreadyPresent = demos.every((demo) => state.projects.some((project) => project.id === demo.id));
+      const noDuplicateNames = state.projects.filter((project) => demoNames.has(project.projectName)).length === demos.length;
+      if (demosAlreadyPresent && noDuplicateNames) return state;
+      return { projects: [...demos, ...otherProjects] };
     }),
 }));

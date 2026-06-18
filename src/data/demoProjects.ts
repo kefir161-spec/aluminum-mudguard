@@ -6,6 +6,14 @@ import { productionConstants } from '../domain/validation';
 
 const now = new Date().toISOString();
 
+export const DEMO_PROJECT_IDS = {
+  tcEntrance: 'demo-tc-rubber-pile',
+  office: 'demo-office-pile-scraper-rubber',
+  intensive: 'demo-intensive-rubber-brush-scraper',
+} as const;
+
+export const demoProjectIdSet = new Set<string>(Object.values(DEMO_PROJECT_IDS));
+
 const makeStrips = (pattern: Array<'rubber' | 'pile' | 'brush' | 'scraper'>, count: number) =>
   Array.from({ length: count }, (_, index) => ({
     id: crypto.randomUUID(),
@@ -20,7 +28,7 @@ export const createDemoProjects = (): ProductConfig[] => {
 
   return [
     {
-      id: crypto.randomUUID(),
+      id: DEMO_PROJECT_IDS.tcEntrance,
       projectName: 'Входная группа ТЦ — Резина–Ворс',
       clientName: 'ТЦ Маяк',
       managerName: 'Менеджер А',
@@ -37,7 +45,7 @@ export const createDemoProjects = (): ProductConfig[] => {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: DEMO_PROJECT_IDS.office,
       projectName: 'Офис — Ворс–Скребок–Резина',
       clientName: 'БЦ Horizon',
       managerName: 'Менеджер Б',
@@ -54,7 +62,7 @@ export const createDemoProjects = (): ProductConfig[] => {
       updatedAt: now,
     },
     {
-      id: crypto.randomUUID(),
+      id: DEMO_PROJECT_IDS.intensive,
       projectName: 'Интенсивный вход — Резина–Щетка–Скребок',
       clientName: 'Логистический центр',
       managerName: 'Менеджер В',

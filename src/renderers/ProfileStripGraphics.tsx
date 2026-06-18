@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { MouseEvent, ReactElement } from 'react';
 import type { ModuleType } from '../domain/types';
 import {
@@ -391,7 +392,7 @@ const renderCompositeStrip = (
   );
 };
 
-export const ProfileStripGraphics = (props: Props) => {
+const ProfileStripGraphicsImpl = (props: Props) => {
   const { type, width, height, lengthPxPerMm, lengthAlong = 'y' } = props;
   const config = profileTextureConfig[type];
 
@@ -406,3 +407,10 @@ export const ProfileStripGraphics = (props: Props) => {
 
   return renderCompositeStrip(type, props, capLengthPx, middleLengthPx);
 };
+
+/**
+ * Тяжёлая отрисовка текстуры профиля (множество image/clipPath).
+ * Мемоизируем, чтобы наведение/выбор планок не пересоздавали SVG-узлы.
+ */
+export const ProfileStripGraphics = memo(ProfileStripGraphicsImpl);
+ProfileStripGraphics.displayName = 'ProfileStripGraphics';

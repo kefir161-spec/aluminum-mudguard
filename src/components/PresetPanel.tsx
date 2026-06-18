@@ -1,35 +1,47 @@
-import { useState } from 'react';
 import { layoutPresets } from '../domain/presets';
+import { PresetPatternMarkers } from './PresetPatternMarkers';
+import { AccordionSection } from './ui/AccordionSection';
+import { Button } from './ui/Button';
+import { Panel } from './ui/Panel';
 
 type Props = {
   onApply: (presetId: string) => void;
-  warning?: string;
+  embedded?: boolean;
 };
 
-export const PresetPanel = ({ onApply, warning }: Props) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+export const PresetPanel = ({ onApply, embedded = false }: Props) => {
+  const content = (
+    <div className="preset-list">
+      {layoutPresets.map((preset) => (
+        <div key={preset.id} className="preset-card">
+          <div className="preset-card__header">
+            <strong className="preset-card__name">{preset.name}</strong>
+            <PresetPatternMarkers pattern={preset.pattern} />
+          </div>
+          <p className="preset-card__desc">{preset.description}</p>
+          <Button variant="secondary" size="sm" fullWidth onClick={() => onApply(preset.id)}>
+            Применить
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+
+  const accordion = (
+    <AccordionSection title="Готовые комбинации" defaultOpen={false}>
+      {content}
+    </AccordionSection>
+  );
+
+  if (embedded) {
+    return <div className="preset-panel-embedded">{accordion}</div>;
+  }
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <h2>Шаблоны раскладки</h2>
-        <button className="toggle-btn" onClick={() => setIsExpanded((prev) => !prev)}>
-          {isExpanded ? 'Свернуть' : 'Развернуть'}
-        </button>
-      </div>
-      {isExpanded && (
-        <div className="collapsible-content">
-          <div className="preset-grid">
-            {layoutPresets.map((preset) => (
-              <button key={preset.id} className="preset-btn" onClick={() => onApply(preset.id)}>
-                <strong>{preset.name}</strong>
-                <span>{preset.description}</span>
-              </button>
-            ))}
-          </div>
-          {warning && <p className="warning">{warning}</p>}
-        </div>
-      )}
-    </section>
+    <Panel>
+      <AccordionSection title="Готовые комбинации" defaultOpen>
+        {content}
+      </AccordionSection>
+    </Panel>
   );
 };

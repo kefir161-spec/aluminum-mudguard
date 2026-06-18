@@ -1,31 +1,36 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 type Size = { width: number; height: number };
 
+const EMPTY_SIZE: Size = { width: 0, height: 0 };
+
+const readSize = (element: HTMLElement): Size => {
+  const rect = element.getBoundingClientRect();
+  return {
+    width: Math.max(0, Math.round(rect.width)),
+    height: Math.max(0, Math.round(rect.height)),
+  };
+};
+
 export const useElementSize = <T extends HTMLElement>(
   enabled: boolean,
+  resetKey?: unknown,
 ): { ref: RefObject<T | null>; size: Size } => {
   const ref = useRef<T | null>(null);
-  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
+  const [size, setSize] = useState<Size>(EMPTY_SIZE);
 
-  useEffect(() => {
-    if (!enabled) {
-      setSize({ width: 0, height: 0 });
-      return undefined;
-    }
+  useLayoutEffect(() => {
+    if (!enabled) return undefined;
 
     const element = ref.current;
     if (!element) return undefined;
 
     const update = () => {
-      const rect = element.getBoundingClientRect();
-      setSize({
-        width: Math.max(0, Math.round(rect.width)),
-        height: Math.max(0, Math.round(rect.height)),
-      });
+      setSize(readSize(element));
     };
 
     update();
+
     const observer = new ResizeObserver(update);
     observer.observe(element);
     window.addEventListener('resize', update);
@@ -34,7 +39,7 @@ export const useElementSize = <T extends HTMLElement>(
       observer.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [enabled]);
+  }, [enabled, resetKey]);
 
-  return { ref, size };
+  return { ref, size: enabled ? size : EMPTY_SIZE };
 };

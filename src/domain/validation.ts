@@ -79,7 +79,6 @@ export const validateConfigWithCalculation = (
       fitApplied: calculation.fitApplied,
       isFullyFitted: calculation.isFullyFitted,
       remainderMm: calculation.remainderMm,
-      fitNote: calculation.fitNote,
     },
   );
   if (widthGapWarning) {

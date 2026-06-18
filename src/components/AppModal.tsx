@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Button } from './ui/Button';
 
 type NewProjectModalProps = {
   kind: 'newProject';
@@ -19,7 +21,8 @@ type AlertModalProps = {
 export type AppModalProps = NewProjectModalProps | AlertModalProps;
 
 export const AppModal = (props: AppModalProps) => {
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const trapRef = useFocusTrap(true);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -34,17 +37,19 @@ export const AppModal = (props: AppModalProps) => {
 
   useEffect(() => {
     if (props.kind === 'newProject') {
-      const input = dialogRef.current?.querySelector<HTMLInputElement>('input');
-      input?.focus();
-      input?.select();
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
   }, [props.kind]);
 
+  const onBackdropClick = props.kind === 'newProject' ? props.onCancel : props.onClose;
+
   return (
-    <div className="app-modal-overlay" role="presentation" onClick={props.kind === 'newProject' ? props.onCancel : props.onClose}>
+    <div className="ui-dialog" role="presentation">
+      <div className="ui-dialog__backdrop" onClick={onBackdropClick} />
       <div
-        ref={dialogRef}
-        className={`app-modal app-modal--${props.kind === 'alert' ? props.tone ?? 'success' : 'form'}`}
+        ref={trapRef}
+        className="ui-dialog__panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="app-modal-title"
@@ -52,41 +57,43 @@ export const AppModal = (props: AppModalProps) => {
       >
         {props.kind === 'newProject' ? (
           <>
-            <h2 id="app-modal-title" className="app-modal__title">
+            <h2 id="app-modal-title" className="ui-dialog__title">
               Новый проект
             </h2>
-            <p className="app-modal__text">Введите название проекта и нажмите «Создать».</p>
-            <label className="app-modal__label" htmlFor="new-project-name">
+            <p className="ui-dialog__text">Введите название проекта и нажмите «Создать».</p>
+            <label className="ui-field-label" htmlFor="new-project-name">
               Название проекта
             </label>
             <input
+              ref={inputRef}
               id="new-project-name"
-              className="field-full app-modal__input"
+              className="ui-input"
+              style={{ marginBottom: 16 }}
               value={props.projectName}
               onChange={(event) => props.onProjectNameChange(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') props.onConfirm();
               }}
             />
-            <div className="app-modal__actions">
-              <button type="button" onClick={props.onCancel}>
+            <div className="ui-dialog__actions">
+              <Button variant="secondary" onClick={props.onCancel}>
                 Отмена
-              </button>
-              <button type="button" className="app-modal__btn-primary" onClick={props.onConfirm}>
+              </Button>
+              <Button variant="primary" onClick={props.onConfirm}>
                 Создать
-              </button>
+              </Button>
             </div>
           </>
         ) : (
           <>
-            <h2 id="app-modal-title" className="app-modal__title">
+            <h2 id="app-modal-title" className="ui-dialog__title">
               {props.title}
             </h2>
-            <p className="app-modal__text">{props.message}</p>
-            <div className="app-modal__actions">
-              <button type="button" className="app-modal__btn-primary" onClick={props.onClose}>
+            <p className="ui-dialog__text">{props.message}</p>
+            <div className="ui-dialog__actions">
+              <Button variant={props.tone === 'error' ? 'danger' : 'primary'} onClick={props.onClose}>
                 OK
-              </button>
+              </Button>
             </div>
           </>
         )}

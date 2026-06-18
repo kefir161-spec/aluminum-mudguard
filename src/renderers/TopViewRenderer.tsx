@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import type { MouseEvent } from 'react';
 import type { ProductConfig } from '../domain/types';
 import { formatPitSubtitle } from '../domain/dimensionLabels';
@@ -18,13 +18,8 @@ type Props = {
   viewport?: { width: number; height: number };
 };
 
-const getStripStroke = (
-  stripId: string,
-  selectedStripId: string | undefined,
-  hoveredStripId: string | undefined,
-): { stroke: string; strokeWidth: number } => {
+const getStripStroke = (stripId: string, selectedStripId: string | undefined): { stroke: string; strokeWidth: number } => {
   if (selectedStripId === stripId) return { stroke: '#2563eb', strokeWidth: 3 };
-  if (hoveredStripId === stripId) return { stroke: '#3b82f6', strokeWidth: 2 };
   return { stroke: '#334155', strokeWidth: 1 };
 };
 
@@ -37,7 +32,6 @@ export const TopViewRenderer = ({
   isFullscreen = false,
   viewport,
 }: Props) => {
-  const [hoveredStripId, setHoveredStripId] = useState<string | undefined>();
   const chrome = getTopViewChrome(isFullscreen, viewport);
   const drawable = getTopViewDrawable(chrome);
   const layout = buildLayoutGeometry(
@@ -53,6 +47,11 @@ export const TopViewRenderer = ({
   const { resolved: layoutResolved } = layout;
   const remainderMm = layoutResolved.remainderMm;
   const filledPx = layout.layoutHeightPx;
+
+  const stripById = useMemo(
+    () => new Map(config.strips.map((strip) => [strip.id, strip])),
+    [config.strips],
+  );
 
   const handleStripContextMenu = (event: MouseEvent, stripId: string) => {
     event.preventDefault();
@@ -86,6 +85,26 @@ export const TopViewRenderer = ({
         stroke="#1f2937"
         strokeWidth={2}
       />
+      {/* Слой 1 (под текстурой): подсветка выбранной планки. */}
+      {layoutRects.map((rect) => {
+        if (rect.kind !== 'strip' || !rect.stripId) return null;
+        const strip = stripById.get(rect.stripId);
+        if (!strip || selectedStripId !== strip.id) return null;
+        return (
+          <rect
+            key={`hl-${strip.id}`}
+            x={rect.x - 1}
+            y={rect.y - 1}
+            width={rect.width + 2}
+            height={rect.height + 2}
+            fill="rgba(37, 99, 235, 0.14)"
+            stroke="none"
+            pointerEvents="none"
+          />
+        );
+      })}
+
+      {/* Слой 2 (статичный): текстуры профилей и зазоры. Мемоизируется, не зависит от выбора. */}
       {layoutRects.map((rect, index) => {
         if (rect.kind === 'gap') {
           return (
@@ -103,44 +122,59 @@ export const TopViewRenderer = ({
           );
         }
 
-        const strip = config.strips.find((item) => item.id === rect.stripId);
+        if (!rect.stripId) return null;
+        const strip = stripById.get(rect.stripId);
         if (!strip) return null;
 
-        const stripStyle = getStripStroke(strip.id, selectedStripId, hoveredStripId);
-        const isHighlighted = hoveredStripId === strip.id || selectedStripId === strip.id;
-
         return (
-          <g key={strip.id}>
-            {isHighlighted && (
-              <rect
-                x={rect.x - 1}
-                y={rect.y - 1}
-                width={rect.width + 2}
-                height={rect.height + 2}
-                fill={
-                  selectedStripId === strip.id ? 'rgba(37, 99, 235, 0.14)' : 'rgba(59, 130, 246, 0.1)'
-                }
-                stroke="none"
-                pointerEvents="none"
-              />
-            )}
-            <ProfileStripGraphics
-              type={strip.type}
+          <ProfileStripGraphics
+            key={strip.id}
+            type={strip.type}
+            x={rect.x}
+            y={rect.y}
+            width={rect.width}
+            height={rect.height}
+            widthScale={layout.scale}
+            lengthPxPerMm={lengthPxPerMm}
+            lengthAlong="x"
+            stroke="#334155"
+            strokeWidth={1}
+            className="strip-row"
+          />
+        );
+      })}
+
+      {/* Слой 3 (над текстурой): интерактив и обводка выбранной планки. */}
+      {layoutRects.map((rect) => {
+        if (rect.kind !== 'strip' || !rect.stripId) return null;
+        const strip = stripById.get(rect.stripId);
+        if (!strip) return null;
+        const isSelected = selectedStripId === strip.id;
+        const stripStyle = getStripStroke(strip.id, selectedStripId);
+        return (
+          <g key={`ix-${strip.id}`}>
+            <rect
               x={rect.x}
               y={rect.y}
               width={rect.width}
               height={rect.height}
-              widthScale={layout.scale}
-              lengthPxPerMm={lengthPxPerMm}
-              lengthAlong="x"
-              stroke={stripStyle.stroke}
-              strokeWidth={stripStyle.strokeWidth}
-              className="strip-row"
+              fill="transparent"
+              style={{ cursor: 'pointer' }}
               onClick={() => onStripClick(strip.id)}
               onContextMenu={(event) => handleStripContextMenu(event, strip.id)}
-              onMouseEnter={() => setHoveredStripId(strip.id)}
-              onMouseLeave={() => setHoveredStripId((current) => (current === strip.id ? undefined : current))}
             />
+            {isSelected && (
+              <rect
+                x={rect.x}
+                y={rect.y}
+                width={rect.width}
+                height={rect.height}
+                fill="none"
+                stroke={stripStyle.stroke}
+                strokeWidth={stripStyle.strokeWidth}
+                pointerEvents="none"
+              />
+            )}
           </g>
         );
       })}
