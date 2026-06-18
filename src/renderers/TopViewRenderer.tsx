@@ -1,49 +1,58 @@
+import { useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { ProductConfig } from '../domain/types';
 import { formatPitSubtitle } from '../domain/dimensionLabels';
-import { MODULE_GAP_MM } from '../domain/constants';
 import { getLengthPxPerMm } from '../data/profileTextures';
 import { ProfileTextureDefs } from './ProfileTextureDefs';
 import { ProfileStripGraphics } from './ProfileStripGraphics';
 import { buildLayoutGeometry } from './layoutGeometry';
 import { HorizontalDimension, VerticalDimension } from './DimensionLines';
+import { getTopViewChrome, getTopViewDrawable, TOP_VIEW_MAT_SIZE_FACTOR } from './topViewLayout';
 
 type Props = {
   config: ProductConfig;
   selectedStripId?: string;
   onStripClick: (stripId: string) => void;
   onStripRemove: (stripId: string) => void;
+  isFullscreen?: boolean;
+  viewport?: { width: number; height: number };
 };
 
-const VIEW_WIDTH = 920;
-const VIEW_HEIGHT = 460;
-const MARGIN_X = 40;
-const MARGIN_TOP = 40;
-const MARGIN_BOTTOM = 36;
-const DIM_TOP = 28;
-const DIM_LEFT = 36;
-const DRAWABLE_WIDTH = VIEW_WIDTH - MARGIN_X * 2 - DIM_LEFT;
-const DRAWABLE_HEIGHT = VIEW_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM - DIM_TOP;
+const getStripStroke = (
+  stripId: string,
+  selectedStripId: string | undefined,
+  hoveredStripId: string | undefined,
+): { stroke: string; strokeWidth: number } => {
+  if (selectedStripId === stripId) return { stroke: '#2563eb', strokeWidth: 3 };
+  if (hoveredStripId === stripId) return { stroke: '#3b82f6', strokeWidth: 2 };
+  return { stroke: '#334155', strokeWidth: 1 };
+};
 
 /** Интерактивный вид конструктора — длина по горизонтали, единый масштаб по габаритам. */
-export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStripRemove }: Props) => {
+export const TopViewRenderer = ({
+  config,
+  selectedStripId,
+  onStripClick,
+  onStripRemove,
+  isFullscreen = false,
+  viewport,
+}: Props) => {
+  const [hoveredStripId, setHoveredStripId] = useState<string | undefined>();
+  const chrome = getTopViewChrome(isFullscreen, viewport);
+  const drawable = getTopViewDrawable(chrome);
   const layout = buildLayoutGeometry(
     config,
-    DRAWABLE_WIDTH,
-    DRAWABLE_HEIGHT,
-    MARGIN_X + DIM_LEFT,
-    MARGIN_TOP + DIM_TOP,
-    { fit: 'contain', align: 'center' },
+    drawable.width,
+    drawable.height,
+    drawable.originX,
+    drawable.originY,
+    { fit: 'contain', align: 'center', sizeFactor: TOP_VIEW_MAT_SIZE_FACTOR },
   );
   const lengthPxPerMm = getLengthPxPerMm(layout.matWidthPx, config.totalLengthMm);
   const layoutRects = layout.rects;
   const { resolved: layoutResolved } = layout;
   const remainderMm = layoutResolved.remainderMm;
   const filledPx = layout.layoutHeightPx;
-  const gapLabel =
-    layoutResolved.fitApplied && layoutResolved.gapSizesMm.length > 0
-      ? `Зазоры: ${Math.min(...layoutResolved.gapSizesMm)}–${Math.max(...layoutResolved.gapSizesMm)} мм (натяжение тросов)`
-      : `Зазор между планками: ${MODULE_GAP_MM} мм`;
 
   const handleStripContextMenu = (event: MouseEvent, stripId: string) => {
     event.preventDefault();
@@ -53,17 +62,20 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStrip
   return (
     <svg
       width="100%"
-      viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+      height="100%"
+      viewBox={`0 0 ${chrome.viewWidth} ${chrome.viewHeight}`}
       preserveAspectRatio="xMidYMid meet"
-      className="renderer-svg"
+      className="renderer-svg renderer-svg--fill"
     >
       <ProfileTextureDefs widthScale={layout.scale} lengthPxPerMm={lengthPxPerMm} />
-      <text x={16} y={22} textAnchor="start" className="top-view-title">
-        Вид сверху
-        {config.dimensionSource === 'pit'
-          ? ` · ${formatPitSubtitle(config.orderLengthMm, config.orderWidthMm)}`
-          : ''}
-      </text>
+      {chrome.showTitle && (
+        <text x={chrome.titleX} y={chrome.titleY} textAnchor="start" className="top-view-title">
+          Вид сверху
+          {config.dimensionSource === 'pit'
+            ? ` · ${formatPitSubtitle(config.orderLengthMm, config.orderWidthMm)}`
+            : ''}
+        </text>
+      )}
 
       <rect
         x={layout.matX}
@@ -94,23 +106,42 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStrip
         const strip = config.strips.find((item) => item.id === rect.stripId);
         if (!strip) return null;
 
+        const stripStyle = getStripStroke(strip.id, selectedStripId, hoveredStripId);
+        const isHighlighted = hoveredStripId === strip.id || selectedStripId === strip.id;
+
         return (
-          <ProfileStripGraphics
-            key={strip.id}
-            type={strip.type}
-            x={rect.x}
-            y={rect.y}
-            width={rect.width}
-            height={rect.height}
-            widthScale={layout.scale}
-            lengthPxPerMm={lengthPxPerMm}
-            lengthAlong="x"
-            stroke={selectedStripId === strip.id ? '#2563eb' : '#334155'}
-            strokeWidth={selectedStripId === strip.id ? 3 : 1}
-            className="strip-row"
-            onClick={() => onStripClick(strip.id)}
-            onContextMenu={(event) => handleStripContextMenu(event, strip.id)}
-          />
+          <g key={strip.id}>
+            {isHighlighted && (
+              <rect
+                x={rect.x - 1}
+                y={rect.y - 1}
+                width={rect.width + 2}
+                height={rect.height + 2}
+                fill={
+                  selectedStripId === strip.id ? 'rgba(37, 99, 235, 0.14)' : 'rgba(59, 130, 246, 0.1)'
+                }
+                stroke="none"
+                pointerEvents="none"
+              />
+            )}
+            <ProfileStripGraphics
+              type={strip.type}
+              x={rect.x}
+              y={rect.y}
+              width={rect.width}
+              height={rect.height}
+              widthScale={layout.scale}
+              lengthPxPerMm={lengthPxPerMm}
+              lengthAlong="x"
+              stroke={stripStyle.stroke}
+              strokeWidth={stripStyle.strokeWidth}
+              className="strip-row"
+              onClick={() => onStripClick(strip.id)}
+              onContextMenu={(event) => handleStripContextMenu(event, strip.id)}
+              onMouseEnter={() => setHoveredStripId(strip.id)}
+              onMouseLeave={() => setHoveredStripId((current) => (current === strip.id ? undefined : current))}
+            />
+          </g>
         );
       })}
 
@@ -156,9 +187,6 @@ export const TopViewRenderer = ({ config, selectedStripId, onStripClick, onStrip
         labelOffset={-8}
       />
 
-      <text x={MARGIN_X} y={VIEW_HEIGHT - 12} className="strip-dimension">
-        {gapLabel} · ПКМ по планке — удалить · размеры тросов — на вкладке «Чертёж»
-      </text>
     </svg>
   );
 };

@@ -1,12 +1,16 @@
 import { derivePatternFromStrips, getDisplayLayoutPattern } from '../domain/layoutRules';
 import { moduleTypeOrder, moduleDefinitions } from '../domain/moduleDefinitions';
-import { PIT_INSET_MM } from '../domain/constants';
+import { PIT_INSET_MM, MAX_ORDER_DIMENSION_MM, MIN_ORDER_DIMENSION_MM } from '../domain/constants';
 import {
   carpetLengthHint,
   carpetLengthLabel,
   carpetWidthHint,
   carpetWidthLabel,
 } from '../domain/dimensionLabels';
+import {
+  isNarrowWidthDiscountEligible,
+  NARROW_WIDTH_DISCOUNT_THRESHOLD_MM,
+} from '../domain/pricing';
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
 import { NumericMmField } from './NumericMmField';
 
@@ -18,6 +22,7 @@ type Props = {
     value: number | DimensionSource,
   ) => void;
   onFitToOrderSize: (value: boolean) => void;
+  onNarrowWidthDiscount: (value: boolean) => void;
   onClientName: (value: string) => void;
   onManagerName: (value: string) => void;
   onUpdateStrip: (key: 'type' | 'widthMm', value: string | number) => void;
@@ -30,6 +35,7 @@ export const PropertiesPanel = ({
   selectedStrip,
   onDimension,
   onFitToOrderSize,
+  onNarrowWidthDiscount,
   onClientName,
   onManagerName,
   onUpdateStrip,
@@ -48,6 +54,7 @@ export const PropertiesPanel = ({
     displayPattern.length > 0
       ? displayPattern.map((type) => moduleDefinitions[type].shortName).join(' → ')
       : undefined;
+  const narrowWidthDiscountEligible = isNarrowWidthDiscountEligible(config.totalLengthMm);
 
   return (
   <section className="panel panel-properties">
@@ -66,7 +73,8 @@ export const PropertiesPanel = ({
     <label>{carpetWidthLabel(config.dimensionSource)}</label>
     <NumericMmField
       value={config.orderLengthMm}
-      min={100}
+      min={MIN_ORDER_DIMENSION_MM}
+      max={MAX_ORDER_DIMENSION_MM}
       fractionDigits={0}
       onCommit={(value) => onDimension('orderLengthMm', value)}
     />
@@ -75,11 +83,16 @@ export const PropertiesPanel = ({
     <label>{carpetLengthLabel(config.dimensionSource)}</label>
     <NumericMmField
       value={config.orderWidthMm}
-      min={100}
+      min={MIN_ORDER_DIMENSION_MM}
+      max={MAX_ORDER_DIMENSION_MM}
       fractionDigits={0}
       onCommit={(value) => onDimension('orderWidthMm', value)}
     />
     {config.dimensionSource === 'pit' && <p className="muted">{carpetLengthHint(config.totalWidthMm)}</p>}
+    <p className="muted">
+      Допустимый габарит: {MIN_ORDER_DIMENSION_MM}–{MAX_ORDER_DIMENSION_MM} мм (макс.{' '}
+      {MAX_ORDER_DIMENSION_MM / 1000}×{MAX_ORDER_DIMENSION_MM / 1000} м).
+    </p>
 
     <label className="checkbox-row">
       <input
@@ -89,6 +102,19 @@ export const PropertiesPanel = ({
       />
       Подогнать под размер заказчика
     </label>
+
+    <label className="checkbox-row">
+      <input
+        type="checkbox"
+        checked={config.narrowWidthDiscountEnabled ?? false}
+        disabled={!narrowWidthDiscountEligible}
+        onChange={(event) => onNarrowWidthDiscount(event.target.checked)}
+      />
+      Скидка −10%
+    </label>
+    {!narrowWidthDiscountEligible && (
+      <p className="muted">Скидка доступна при ширине ковра менее {NARROW_WIDTH_DISCOUNT_THRESHOLD_MM} мм.</p>
+    )}
 
     <label>Клиент</label>
     <input className="field-full" value={config.clientName || ''} onChange={(event) => onClientName(event.target.value)} />

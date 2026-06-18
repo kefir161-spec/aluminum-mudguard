@@ -3,6 +3,7 @@ import type { ModuleType } from '../domain/types';
 import {
   getCapLengthPx,
   getModuleLengthPx,
+  getSourceCapLengthPx,
   getStripWidthPx,
   getTileLengthPx,
   profileTextureConfig,
@@ -24,10 +25,15 @@ type Props = {
   className?: string;
   onClick?: () => void;
   onContextMenu?: (event: MouseEvent) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   idPrefix?: string;
 };
 
-type InteractionProps = Pick<Props, 'onClick' | 'onContextMenu' | 'stroke' | 'strokeWidth'>;
+type InteractionProps = Pick<
+  Props,
+  'onClick' | 'onContextMenu' | 'onMouseEnter' | 'onMouseLeave' | 'stroke' | 'strokeWidth'
+>;
 
 type ModuleSliceParams = {
   moduleSrc: string;
@@ -40,12 +46,14 @@ type ModuleSliceParams = {
   sourceOffsetPx: number;
 };
 
+const TILE_SEAM_OVERLAP_PX = 1;
+
 const renderInteractionLayer = (
   x: number,
   y: number,
   width: number,
   height: number,
-  { onClick, onContextMenu, stroke, strokeWidth }: InteractionProps,
+  { onClick, onContextMenu, onMouseEnter, onMouseLeave, stroke, strokeWidth }: InteractionProps,
 ) => (
   <>
     {onClick && (
@@ -57,6 +65,8 @@ const renderInteractionLayer = (
         fill="transparent"
         onClick={onClick}
         onContextMenu={onContextMenu}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       />
     )}
     <rect
@@ -107,7 +117,7 @@ const renderModuleSlice = ({
   return <g transform={`translate(${destX}, ${destY})`}>{image}</g>;
 };
 
-/** Середина полосы: тайлы 300 мм с зацикливанием внутри эталонного PNG. */
+/** Середина полосы: повторяем только чистый участок ворса/рифления без заглушек. */
 const renderMiddleSlices = (
   moduleSrc: string,
   props: Pick<Props, 'lengthAlong'>,
@@ -120,59 +130,48 @@ const renderMiddleSlices = (
   moduleLengthPx: number,
 ): ReactElement[] => {
   const middleBandPx = Math.max(moduleLengthPx - capLengthPx * 2, 1);
-  const middleEndSource = moduleLengthPx - capLengthPx;
+  const seamlessTileStartPx = capLengthPx + Math.max(0, (middleBandPx - tileLengthPx) / 2);
   const slices: ReactElement[] = [];
   let destPos = 0;
   let sliceIndex = 0;
 
   while (destPos < middleLengthPx - 0.01) {
-    let remaining = Math.min(tileLengthPx, middleLengthPx - destPos);
-    let sourceOffset = capLengthPx + (destPos % middleBandPx);
+    const segLength = Math.min(tileLengthPx, middleLengthPx - destPos);
+    const clipLength = Math.min(segLength + TILE_SEAM_OVERLAP_PX, middleLengthPx - destPos);
+    const sourceOffset = seamlessTileStartPx + (destPos % tileLengthPx);
+    const destX = props.lengthAlong === 'x' ? baseX + capLengthPx + destPos : baseX;
+    const destY = props.lengthAlong === 'x' ? baseY : baseY + capLengthPx + destPos;
 
-    while (remaining > 0.01) {
-      const available = middleEndSource - sourceOffset;
-      if (available <= 0.01) {
-        sourceOffset = capLengthPx;
-        continue;
-      }
-
-      const segLength = Math.min(remaining, available);
-      const destX = props.lengthAlong === 'x' ? baseX + capLengthPx + destPos : baseX;
-      const destY = props.lengthAlong === 'x' ? baseY : baseY + capLengthPx + destPos;
-
-      const clipId = `mid-${Math.round(destX)}-${Math.round(destY)}-${sliceIndex}`;
-      const clipRect =
-        props.lengthAlong === 'x' ? (
-          <rect x={destX} y={destY} width={segLength} height={crossSizePx} />
-        ) : (
-          <rect x={destX} y={destY} width={crossSizePx} height={segLength} />
-        );
-
-      slices.push(
-        <g key={clipId}>
-          <defs>
-            <clipPath id={clipId}>{clipRect}</clipPath>
-          </defs>
-          <g clipPath={`url(#${clipId})`}>
-            {renderModuleSlice({
-              moduleSrc,
-              lengthAlong: props.lengthAlong ?? 'y',
-              destX,
-              destY,
-              destLengthPx: segLength,
-              crossSizePx,
-              moduleLengthPx,
-              sourceOffsetPx: sourceOffset,
-            })}
-          </g>
-        </g>,
+    const clipId = `mid-${Math.round(destX)}-${Math.round(destY)}-${sliceIndex}`;
+    const clipRect =
+      props.lengthAlong === 'x' ? (
+        <rect x={destX} y={destY} width={clipLength} height={crossSizePx} />
+      ) : (
+        <rect x={destX} y={destY} width={crossSizePx} height={clipLength} />
       );
 
-      destPos += segLength;
-      remaining -= segLength;
-      sourceOffset += segLength;
-      sliceIndex += 1;
-    }
+    slices.push(
+      <g key={clipId}>
+        <defs>
+          <clipPath id={clipId}>{clipRect}</clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          {renderModuleSlice({
+            moduleSrc,
+            lengthAlong: props.lengthAlong ?? 'y',
+            destX,
+            destY,
+            destLengthPx: segLength,
+            crossSizePx,
+            moduleLengthPx,
+            sourceOffsetPx: sourceOffset,
+          })}
+        </g>
+      </g>,
+    );
+
+    destPos += segLength;
+    sliceIndex += 1;
   }
 
   return slices;
@@ -219,7 +218,8 @@ const renderTiledModule = (type: ModuleType, moduleSrc: string, props: Props): R
   }
 
   const moduleLengthPx = getModuleLengthPx(lengthPxPerMm);
-  const capLengthPx = type === 'scraper' ? 0 : getCapLengthPx(lengthPxPerMm, crossSizePx);
+  const capLengthPx =
+    type === 'scraper' ? 0 : getSourceCapLengthPx(moduleLengthPx);
   const middleLengthPx = Math.max(0, lengthPx - capLengthPx * 2);
 
   return (

@@ -20,5 +20,12 @@ export const carpetLengthHint = (totalWidthMm: number): string =>
 export const formatDrawingSizePair = (widthMm: number, lengthMm: number): string =>
   `Ширина ${Math.round(widthMm)} х Длина ${Math.round(lengthMm)} мм`;
 
+/** Компактный формат для узкой колонки чертежа. */
+export const formatCompactDrawingSizePair = (widthMm: number, lengthMm: number): string =>
+  `${Math.round(widthMm)}×${Math.round(lengthMm)} мм`;
+
 export const formatPitSubtitle = (widthMm: number, lengthMm: number): string =>
   `приямок ${Math.round(widthMm)}×${Math.round(lengthMm)} мм`;
+
+export const dimensionSourceLabel = (source: DimensionSource): string =>
+  source === 'pit' ? 'Приямок' : 'Ковер';

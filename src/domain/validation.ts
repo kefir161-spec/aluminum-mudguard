@@ -11,6 +11,8 @@ import {
   PIT_INSET_MM,
   SCRAPER_HEIGHT_MM,
   SCRAPER_WIDTH_MM,
+  MIN_ORDER_DIMENSION_MM,
+  MAX_ORDER_DIMENSION_MM,
 } from './constants';
 import {
   getScraperEdgeWarnings,
@@ -42,7 +44,6 @@ export const validateConfig = (config: ProductConfig): string[] => {
     }
   }
 
-  warnings.push('Цены используются для демонстрации и требуют уточнения.');
   return warnings;
 };
 
@@ -96,4 +97,6 @@ export const productionConstants = {
   scraperWidthMm: SCRAPER_WIDTH_MM,
   moduleGapMm: MODULE_GAP_MM,
   pitInsetMm: PIT_INSET_MM,
+  minOrderDimensionMm: MIN_ORDER_DIMENSION_MM,
+  maxOrderDimensionMm: MAX_ORDER_DIMENSION_MM,
 };

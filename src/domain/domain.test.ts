@@ -153,6 +153,64 @@ describe('calculations', () => {
     expect(result.cableLayout?.count).toBeGreaterThan(0);
     expect(result.plugCount).toBeGreaterThan(0);
   });
+
+  it('applies 10% narrow-width discount when enabled and carpet width is below 1200 mm', () => {
+    const config = makeConfig({
+      orderLengthMm: 1100,
+      totalLengthMm: 1100,
+      narrowWidthDiscountEnabled: true,
+      strips: rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000),
+    });
+    const result = calculateConfig(config);
+    expect(result.narrowWidthDiscountApplied).toBe(true);
+    expect(result.narrowWidthDiscountPercent).toBe(10);
+    expect(result.narrowWidthDiscountAmount).toBeCloseTo(result.subtotalPrice * 0.1);
+    expect(result.totalPrice).toBeCloseTo(result.subtotalPrice * 0.9);
+  });
+
+  it('does not apply narrow-width discount when option is disabled', () => {
+    const config = makeConfig({
+      orderLengthMm: 1100,
+      totalLengthMm: 1100,
+      narrowWidthDiscountEnabled: false,
+      strips: rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000),
+    });
+    const result = calculateConfig(config);
+    expect(result.narrowWidthDiscountApplied).toBe(false);
+    expect(result.totalPrice).toBe(result.subtotalPrice);
+  });
+
+  it('does not apply narrow-width discount at 1200 mm and above', () => {
+    const config = makeConfig({
+      orderLengthMm: 1200,
+      totalLengthMm: 1200,
+      narrowWidthDiscountEnabled: true,
+      strips: rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000),
+    });
+    const result = calculateConfig(config);
+    expect(result.narrowWidthDiscountApplied).toBe(false);
+    expect(result.narrowWidthDiscountAmount).toBe(0);
+    expect(result.totalPrice).toBe(result.subtotalPrice);
+  });
+});
+
+describe('getSourceCapLengthPx', () => {
+  it('keeps cap proportion from slice meta', async () => {
+    const { getModuleLengthPx, getSourceCapLengthPx } = await import('../data/profileTextures');
+    const moduleLengthPx = getModuleLengthPx(0.5);
+    const capPx = getSourceCapLengthPx(moduleLengthPx);
+    expect(capPx).toBeGreaterThan(0);
+    expect(capPx).toBeLessThan(moduleLengthPx / 2);
+  });
+});
+
+describe('clampOrderDimensionMm', () => {
+  it('clamps order dimensions to 100–3000 mm', async () => {
+    const { clampOrderDimensionMm } = await import('./numbers');
+    expect(clampOrderDimensionMm(50)).toBe(100);
+    expect(clampOrderDimensionMm(1500)).toBe(1500);
+    expect(clampOrderDimensionMm(3500)).toBe(3000);
+  });
 });
 
 describe('formatAllowance', () => {

@@ -22,7 +22,7 @@ export const ProjectStoragePanel = ({ projects, currentProjectId, onLoad, onDele
       </div>
       {isExpanded && (
         <div className="collapsible-content">
-          <button onClick={onLoadDemo}>Загрузить демо-проекты</button>
+          <button onClick={onLoadDemo}>Загрузить типовые проекты</button>
           <div className="storage-list">
             {projects.length === 0 && <p className="muted">Пока нет сохраненных проектов.</p>}
             {projects.map((project) => (

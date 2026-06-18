@@ -29,6 +29,8 @@ export type LayoutBuildOptions = {
   /** contain — вписать в область; fillWidth — заполнить по длине (горизонтали) */
   fit?: 'contain' | 'fillWidth';
   align?: 'start' | 'center';
+  /** Доля доступной области, занимаемая полотном (1 = максимум). */
+  sizeFactor?: number;
 };
 
 /**
@@ -43,7 +45,8 @@ export const buildLayoutGeometry = (
   originY: number,
   options: LayoutBuildOptions = {},
 ): LayoutGeometry => {
-  const { fit = 'contain', align = 'center' } = options;
+  const { fit = 'contain', align = 'center', sizeFactor = 1 } = options;
+  const boundedSizeFactor = Math.max(0.1, Math.min(sizeFactor, 1));
   const resolved = resolveLayoutDimensions(
     config.strips,
     config.totalWidthMm,
@@ -53,16 +56,19 @@ export const buildLayoutGeometry = (
   const targetWidthMm = Math.max(config.totalWidthMm, resolved.effectiveWidthMm, 1);
   const totalLengthMm = Math.max(config.totalLengthMm, 1);
 
+  const drawableWidth = viewportWidth * boundedSizeFactor;
+  const drawableHeight = viewportHeight * boundedSizeFactor;
+
   let scale =
     fit === 'fillWidth'
-      ? viewportWidth / totalLengthMm
-      : Math.min(viewportWidth / totalLengthMm, viewportHeight / targetWidthMm);
+      ? drawableWidth / totalLengthMm
+      : Math.min(drawableWidth / totalLengthMm, drawableHeight / targetWidthMm);
 
   let matWidthPx = totalLengthMm * scale;
   let matHeightPx = targetWidthMm * scale;
 
-  if (fit === 'fillWidth' && matHeightPx > viewportHeight) {
-    scale = viewportHeight / targetWidthMm;
+  if (fit === 'fillWidth' && matHeightPx > drawableHeight) {
+    scale = drawableHeight / targetWidthMm;
     matWidthPx = totalLengthMm * scale;
     matHeightPx = targetWidthMm * scale;
   }

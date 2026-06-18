@@ -45,6 +45,8 @@ export type ProductConfig = {
   cableEdgeOffsetMm?: number;
   /** Подогнать полотно под заказной габарит натяжением тросов (зазоры между планками). */
   fitToOrderSize?: boolean;
+  /** Скидка −10 % при ширине ковра менее 1200 мм (только если включена вручную). */
+  narrowWidthDiscountEnabled?: boolean;
   strips: Strip[];
   createdAt: string;
   updatedAt: string;
@@ -75,6 +77,10 @@ export type CalculationByType = {
 
 export type CalculationResult = {
   totalAreaM2: number;
+  subtotalPrice: number;
+  narrowWidthDiscountApplied: boolean;
+  narrowWidthDiscountPercent: number;
+  narrowWidthDiscountAmount: number;
   totalPrice: number;
   totalStripWidthMm: number;
   totalLayoutWidthMm: number;

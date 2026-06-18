@@ -15,8 +15,8 @@ import { layoutPresets } from '../domain/presets';
 import type { DimensionSource } from '../domain/types';
 import { validateConfigWithCalculation } from '../domain/validation';
 import { exportDrawingPdf, exportDrawingPng } from '../export/drawingExport';
+import { ConstructorView } from '../components/ConstructorView';
 import { DrawingSheet } from '../renderers/DrawingSheet';
-import { TopViewRenderer } from '../renderers/TopViewRenderer';
 import { useConfiguratorStore } from '../store/configuratorStore';
 
 function App() {
@@ -39,6 +39,7 @@ function App() {
     autoFillRemainder,
     clearAllStrips,
     setFitToOrderSize,
+    setNarrowWidthDiscountEnabled,
     newProject,
     saveCurrentProject,
     loadProject,
@@ -149,7 +150,7 @@ function App() {
           <Tabs activeTab={activeTab} onChange={setActiveTab} />
           <section className="panel canvas-area" id="canvas-area-export">
             {activeTab === 'constructor' && (
-              <TopViewRenderer
+              <ConstructorView
                 config={config}
                 selectedStripId={selectedStripId}
                 onStripClick={selectStrip}
@@ -167,6 +168,7 @@ function App() {
             selectedStrip={selectedStrip}
             onDimension={handleDimension}
             onFitToOrderSize={setFitToOrderSize}
+            onNarrowWidthDiscount={setNarrowWidthDiscountEnabled}
             onClientName={(value) => setProjectMeta('clientName', value)}
             onManagerName={(value) => setProjectMeta('managerName', value)}
             onUpdateStrip={(key, value) => updateSelectedStrip({ [key]: value })}

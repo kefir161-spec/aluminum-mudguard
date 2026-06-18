@@ -1,58 +1,74 @@
 import type { CalculationResult, ProductConfig } from '../domain/types';
+import { formatMoney, formatNumber } from '../domain/calculations';
+import { moduleDefinitions } from '../domain/moduleDefinitions';
 
 type Props = {
   config: ProductConfig;
   calculation: CalculationResult;
 };
 
-export const SpecPanel = ({ config, calculation }: Props) => (
-  <div className="spec-wrap">
-    <h2>Спецификация</h2>
-    <table className="table">
-      <thead>
-        <tr>
-          <th>№</th>
-          <th>Тип профиля</th>
-          <th>Количество полос</th>
-          <th>Суммарная длина, мм</th>
-          <th>Ширина, мм</th>
-          <th>Площадь, м²</th>
-          <th>Цена за м²</th>
-          <th>Стоимость</th>
-          <th>Комментарий</th>
-        </tr>
-      </thead>
-      <tbody>
-        {calculation.byType.map((row, index) => (
-          <tr key={row.type}>
-            <td>{index + 1}</td>
-            <td>{row.type}</td>
-            <td>{row.count}</td>
-            <td>{row.totalWidthMm.toFixed(1)}</td>
-            <td>{config.totalLengthMm.toFixed(1)}</td>
-            <td>{row.areaM2.toFixed(3)}</td>
-            <td>{Math.round(row.unitPrice).toLocaleString('ru-RU')}</td>
-            <td>{Math.round(row.price).toLocaleString('ru-RU')} ₽</td>
-            <td>Ориентировочный расчет</td>
+export const SpecPanel = ({ config, calculation }: Props) => {
+  const rows = calculation.byType.filter((row) => row.count > 0);
+  const cableText = calculation.cableLayout
+    ? `${calculation.cableLayout.count} шт.${
+        calculation.cableLayout.spacingsMm.length ? `, шаг ${calculation.cableLayout.spacingsMm.join(', ')} мм` : ''
+      }`
+    : 'не размещены';
+
+  return (
+    <div className="spec-wrap">
+      <h2>Спецификация</h2>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Профиль</th>
+            <th>Планки, шт.</th>
+            <th>Суммарная ширина, мм</th>
+            <th>Длина планки, мм</th>
+            <th>Площадь, м²</th>
+            <th>Цена, ₽/м²</th>
+            <th>Стоимость</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-    <p>
-      Заглушки: <strong>{calculation.plugCount} шт.</strong> (2 на каждую планку, кроме скребка). Втулки:{' '}
-      <strong>{calculation.bushingCount} шт.</strong> ((профилей − 1) × тросы).
-    </p>
-    <p>
-      Тросы:{' '}
-      <strong>{calculation.cableLayout ? `${calculation.cableLayout.count} шт.` : 'не размещены'}</strong>
-      {calculation.cableLayout?.spacingsMm.length
-        ? `, шаг ${calculation.cableLayout.spacingsMm.join(', ')} мм`
-        : ''}
-    </p>
-    <p>
-      Итоговая площадь: <strong>{calculation.totalAreaM2.toFixed(3)} м²</strong>, итоговая стоимость:{' '}
-      <strong>{Math.round(calculation.totalPrice).toLocaleString('ru-RU')} ₽</strong>.
-    </p>
-    <p className="warning">Расчет ориентировочный и требует уточнения.</p>
-  </div>
-);
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={row.type}>
+              <td>{index + 1}</td>
+              <td>{moduleDefinitions[row.type].shortName}</td>
+              <td>{row.count}</td>
+              <td>{formatNumber(row.totalWidthMm, 1)}</td>
+              <td>{formatNumber(config.totalLengthMm, 1)}</td>
+              <td>{formatNumber(row.areaM2, 3)}</td>
+              <td>{formatMoney(row.unitPrice)}</td>
+              <td>{formatMoney(row.price)} ₽</td>
+            </tr>
+          ))}
+          {calculation.narrowWidthDiscountApplied && (
+            <tr className="spec-summary-row">
+              <td colSpan={7} className="spec-summary-label">
+                Скидка −{calculation.narrowWidthDiscountPercent}%
+              </td>
+              <td>−{formatMoney(calculation.narrowWidthDiscountAmount)} ₽</td>
+            </tr>
+          )}
+          <tr className="spec-summary-row spec-summary-row--total">
+            <td colSpan={7} className="spec-summary-label">
+              Итого
+            </td>
+            <td>{formatMoney(calculation.totalPrice)} ₽</td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="spec-details">
+        <p>
+          <strong>Комплектующие:</strong> заглушки — {calculation.plugCount} шт.; втулки —{' '}
+          {calculation.bushingCount} шт.; тросы — {cableText}.
+        </p>
+        <p>
+          <strong>Итоговая площадь:</strong> {formatNumber(calculation.totalAreaM2, 3)} м².
+        </p>
+      </div>
+    </div>
+  );
+};

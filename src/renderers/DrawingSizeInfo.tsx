@@ -1,5 +1,8 @@
 import type { CalculationResult, ProductConfig } from '../domain/types';
-import { formatDrawingSizePair } from '../domain/dimensionLabels';
+import {
+  dimensionSourceLabel,
+  formatCompactDrawingSizePair,
+} from '../domain/dimensionLabels';
 import { getCalculatedLayoutWidthMm } from './drawingSizeMetrics';
 
 type Props = {
@@ -9,19 +12,40 @@ type Props = {
   calculation: CalculationResult;
 };
 
+const LINE_HEIGHT = 18;
+
+type InfoRow = {
+  label: string;
+  value: string;
+};
+
+const SizeInfoRow = ({ x, y, row }: { x: number; y: number; row: InfoRow }) => (
+  <text x={x} y={y} className="sheet-size-info__line">
+    <tspan className="sheet-size-info__label">{row.label}: </tspan>
+    <tspan>{row.value}</tspan>
+    <title>{`${row.label}: ${row.value}`}</title>
+  </text>
+);
+
 export const DrawingSizeInfo = ({ x, y, config, calculation }: Props) => {
-  const requestedLine = `Запрашиваемый размер: ${formatDrawingSizePair(config.orderLengthMm, config.orderWidthMm)}`;
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
-  const calculatedLine = `Расчетный размер: ${formatDrawingSizePair(config.totalLengthMm, calculatedWidthMm)}`;
+  const rows: InfoRow[] = [
+    { label: 'Источник', value: dimensionSourceLabel(config.dimensionSource) },
+    {
+      label: 'Запрос',
+      value: formatCompactDrawingSizePair(config.orderLengthMm, config.orderWidthMm),
+    },
+    {
+      label: 'Расчёт',
+      value: formatCompactDrawingSizePair(config.totalLengthMm, calculatedWidthMm),
+    },
+  ];
 
   return (
     <g className="sheet-size-info">
-      <text x={x} y={y} className="sheet-size-info__line">
-        {requestedLine}
-      </text>
-      <text x={x} y={y + 20} className="sheet-size-info__line">
-        {calculatedLine}
-      </text>
+      {rows.map((row, index) => (
+        <SizeInfoRow key={row.label} x={x} y={y + index * LINE_HEIGHT} row={row} />
+      ))}
     </g>
   );
 };

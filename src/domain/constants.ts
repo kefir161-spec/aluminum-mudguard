@@ -14,5 +14,9 @@ export const MAX_CABLES = 10;
 
 export const PIT_INSET_MM = 10;
 
+/** Минимальный и максимальный заказной габарит (ширина и длина), мм. */
+export const MIN_ORDER_DIMENSION_MM = 100;
+export const MAX_ORDER_DIMENSION_MM = 3000;
+
 export const COMPRESSION_AT_1000_MM = 7;
 export const COMPRESSION_AT_2000_MM = 12;

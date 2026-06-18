@@ -18,7 +18,7 @@ import {
   SCRAPER_AT_START_WARNING,
 } from '../domain/layoutRules';
 import type { DimensionSource, LayoutPreset, ModuleType, ProductConfig, Strip } from '../domain/types';
-import { clampCableEdgeOffset, clampMm } from '../domain/numbers';
+import { clampCableEdgeOffset, clampOrderDimensionMm, clampMm } from '../domain/numbers';
 import { productionConstants } from '../domain/validation';
 import { createDemoProjects } from '../data/demoProjects';
 import { deleteProjectById, loadStorage, upsertProject } from '../storage/projectStorage';
@@ -47,6 +47,7 @@ type StoreState = {
   autoFillRemainder: () => void;
   clearAllStrips: () => void;
   setFitToOrderSize: (fitToOrderSize: boolean) => void;
+  setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled: boolean) => void;
   newProject: (projectName?: string) => void;
   saveCurrentProject: () => void;
   loadProject: (projectId: string) => void;
@@ -74,11 +75,12 @@ const normalizeConfig = (config: ProductConfig): ProductConfig => {
   return syncOrderDimensions({
     ...config,
     dimensionSource,
-    orderWidthMm,
-    orderLengthMm,
+    orderWidthMm: clampOrderDimensionMm(orderWidthMm),
+    orderLengthMm: clampOrderDimensionMm(orderLengthMm),
     cableEdgeOffsetMm: config.cableEdgeOffsetMm ?? CABLE_EDGE_OFFSET_DEFAULT_MM,
     defaultStripWidthMm: config.defaultStripWidthMm ?? productionConstants.defaultStripWidthMm,
     fitToOrderSize: config.fitToOrderSize ?? false,
+    narrowWidthDiscountEnabled: config.narrowWidthDiscountEnabled ?? false,
     autoFillEnabled: config.autoFillEnabled ?? false,
     strips: normalizeStrips(config.strips),
   });
@@ -114,6 +116,7 @@ const createNewProject = (): ProductConfig => {
     layoutPattern: ['rubber', 'pile'],
     cableEdgeOffsetMm: CABLE_EDGE_OFFSET_DEFAULT_MM,
     fitToOrderSize: false,
+    narrowWidthDiscountEnabled: false,
     autoFillEnabled: false,
     strips: [],
     createdAt: now,
@@ -148,8 +151,8 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
   setDimensions: (partial) =>
     set((state) => {
       const next = { ...state.config, ...partial };
-      if (partial.orderWidthMm !== undefined) next.orderWidthMm = clampMm(partial.orderWidthMm, 100);
-      if (partial.orderLengthMm !== undefined) next.orderLengthMm = clampMm(partial.orderLengthMm, 100);
+      if (partial.orderWidthMm !== undefined) next.orderWidthMm = clampOrderDimensionMm(partial.orderWidthMm);
+      if (partial.orderLengthMm !== undefined) next.orderLengthMm = clampOrderDimensionMm(partial.orderLengthMm);
       if (partial.defaultStripWidthMm !== undefined) next.defaultStripWidthMm = clampMm(partial.defaultStripWidthMm);
       if (partial.cableEdgeOffsetMm !== undefined) next.cableEdgeOffsetMm = clampCableEdgeOffset(partial.cableEdgeOffsetMm);
       if (partial.dimensionSource !== undefined) next.dimensionSource = partial.dimensionSource;
@@ -323,6 +326,10 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
   setFitToOrderSize: (fitToOrderSize) =>
     set((state) => ({
       config: withUpdatedAt({ ...state.config, fitToOrderSize }),
+    })),
+  setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled) =>
+    set((state) => ({
+      config: withUpdatedAt({ ...state.config, narrowWidthDiscountEnabled }),
     })),
   newProject: (projectName) => {
     const project = createNewProject();

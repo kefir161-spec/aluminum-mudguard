@@ -10,6 +10,7 @@ type Props = {
 
 export const CalculationPanel = ({ calculation, warnings }: Props) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const rows = calculation.byType.filter((row) => row.count > 0);
 
   return (
     <section className="panel">
@@ -21,7 +22,6 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
       </div>
       {isExpanded && (
         <div className="collapsible-content">
-          <p className="muted">Ориентировочный расчет для демо</p>
           <ul className="calc-list">
             {Math.abs(calculation.remainderMm) > 0 && (
               <li className={calculation.isUnderfilled ? 'calc-gap-warning' : 'calc-gap-error'}>
@@ -40,6 +40,15 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                 ? `, шаг ${calculation.cableLayout.spacingsMm.join(', ')} мм`
                 : ''}
             </li>
+            {calculation.narrowWidthDiscountApplied && (
+              <>
+                <li>Стоимость без скидки: {formatMoney(calculation.subtotalPrice)} ₽</li>
+                <li className="calc-discount">
+                  Скидка за узкую ширину (&lt; 1200 мм): −{formatMoney(calculation.narrowWidthDiscountAmount)} ₽ (
+                  {calculation.narrowWidthDiscountPercent}%)
+                </li>
+              </>
+            )}
             <li>Итоговая стоимость: {formatMoney(calculation.totalPrice)} ₽</li>
           </ul>
           <div className="table-scroll">
@@ -53,7 +62,7 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                 </tr>
               </thead>
               <tbody>
-                {calculation.byType.map((row) => (
+                {rows.map((row) => (
                   <tr key={row.type}>
                     <td>{moduleDefinitions[row.type].shortName}</td>
                     <td>{row.count}</td>

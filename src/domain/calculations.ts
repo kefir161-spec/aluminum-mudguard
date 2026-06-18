@@ -5,7 +5,7 @@ import { getCompressionAllowance, isWithinCompressionAllowance } from './compres
 import { resolveLayoutDimensions } from './gapFit';
 import { getOrderTargetDimensions } from './pitDimensions';
 import type { CalculationResult, ProductConfig, Strip } from './types';
-import { pricingConfig } from './pricing';
+import { getNarrowWidthDiscount, pricingConfig } from './pricing';
 
 export const MM2_TO_M2 = 1_000_000;
 
@@ -53,10 +53,20 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
 
   const widthDeltaMm = Math.round(effectiveLayoutWidthMm) - Math.round(orderTarget.totalWidthMm);
   const compressionAllowance = getCompressionAllowance(orderTarget.totalWidthMm);
+  const subtotalPrice = byType.reduce((sum, item) => sum + item.price, 0);
+  const narrowWidthDiscount = getNarrowWidthDiscount(
+    config.narrowWidthDiscountEnabled ?? false,
+    orderTarget.totalLengthMm,
+    subtotalPrice,
+  );
 
   return {
     totalAreaM2,
-    totalPrice: byType.reduce((sum, item) => sum + item.price, 0),
+    subtotalPrice,
+    narrowWidthDiscountApplied: narrowWidthDiscount.applied,
+    narrowWidthDiscountPercent: narrowWidthDiscount.percent,
+    narrowWidthDiscountAmount: narrowWidthDiscount.amount,
+    totalPrice: subtotalPrice - narrowWidthDiscount.amount,
     totalStripWidthMm,
     totalLayoutWidthMm,
     totalGapMm,
