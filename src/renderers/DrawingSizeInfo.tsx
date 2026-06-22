@@ -1,8 +1,6 @@
 import type { CalculationResult, ProductConfig } from '../domain/types';
-import {
-  dimensionSourceLabel,
-  formatCompactDrawingSizePair,
-} from '../domain/dimensionLabels';
+import { formatMatSizePair } from '../domain/dimensionLabels';
+import { mm } from '../domain/eskd';
 import { getCalculatedLayoutWidthMm } from './drawingSizeMetrics';
 
 type Props = {
@@ -10,42 +8,37 @@ type Props = {
   y: number;
   config: ProductConfig;
   calculation: CalculationResult;
+  width?: number;
 };
 
-const LINE_HEIGHT = 18;
+const LINE_HEIGHT_MM = 5;
 
-type InfoRow = {
-  label: string;
-  value: string;
-};
-
-const SizeInfoRow = ({ x, y, row }: { x: number; y: number; row: InfoRow }) => (
-  <text x={x} y={y} className="sheet-size-info__line">
-    <tspan className="sheet-size-info__label">{row.label}: </tspan>
-    <tspan>{row.value}</tspan>
-    <title>{`${row.label}: ${row.value}`}</title>
-  </text>
-);
-
-export const DrawingSizeInfo = ({ x, y, config, calculation }: Props) => {
+/** Запрашиваемый и расчётный размер ковра (как на эталонном чертеже). */
+export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => {
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
-  const rows: InfoRow[] = [
-    { label: 'Источник', value: dimensionSourceLabel(config.dimensionSource) },
-    {
-      label: 'Запрос',
-      value: formatCompactDrawingSizePair(config.orderLengthMm, config.orderWidthMm),
-    },
-    {
-      label: 'Расчёт',
-      value: formatCompactDrawingSizePair(config.totalLengthMm, calculatedWidthMm),
-    },
-  ];
+  const requested = formatMatSizePair(config.orderWidthMm, config.orderLengthMm);
+  const calculated = formatMatSizePair(calculatedWidthMm, config.totalLengthMm);
 
   return (
     <g className="sheet-size-info">
-      {rows.map((row, index) => (
-        <SizeInfoRow key={row.label} x={x} y={y + index * LINE_HEIGHT} row={row} />
-      ))}
+      <text
+        x={x}
+        y={y}
+        className="eskd-text sheet-size-info__line"
+        style={{ fontSize: 9 }}
+        textAnchor={width ? 'end' : 'start'}
+      >
+        Запрашиваемый размер ковра {requested}
+      </text>
+      <text
+        x={x}
+        y={y + mm(LINE_HEIGHT_MM)}
+        className="eskd-text sheet-size-info__line"
+        style={{ fontSize: 9 }}
+        textAnchor={width ? 'end' : 'start'}
+      >
+        Расчетный размер ковра {calculated}
+      </text>
     </g>
   );
 };

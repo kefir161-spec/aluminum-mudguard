@@ -1,23 +1,32 @@
-import { getScraperEdgeWarnings, deriveLegendTypesFromStrips } from '../domain/layoutRules';
-import { DRAWING_EXPORT_HEIGHT, DRAWING_EXPORT_ID, DRAWING_EXPORT_WIDTH } from '../export/drawingExport';
-import { moduleDefinitions } from '../domain/moduleDefinitions';
+import { getScraperEdgeWarnings } from '../domain/layoutRules';
+import { DRAWING_EXPORT_ID } from '../export/drawingExport';
 import type { CalculationResult, ProductConfig } from '../domain/types';
 import { getLengthPxPerMm } from '../data/profileTextures';
+import {
+  deriveDesignation,
+  deriveProductName,
+  ESKD_DOCUMENT_TITLE,
+  ESKD_ORG_NAME,
+  formatScaleLabel,
+  LINE_THICK_PX,
+  LINE_THIN_PX,
+  mm,
+  SHEET_HEIGHT_PX,
+  SHEET_PX_PER_MM,
+  SHEET_WIDTH_PX,
+  snapStandardScale,
+} from '../domain/eskd';
 import { ProfileTextureDefs } from './ProfileTextureDefs';
 import { ProfileStripGraphics } from './ProfileStripGraphics';
 import { buildLayoutGeometry, cablePositionsAlongLength } from './layoutGeometry';
 import { CableSpacingAnnotation, HorizontalDimension, VerticalDimension } from './DimensionLines';
-import {
-  computeSheetLayout,
-  LEGEND_ROW_H,
-  LEGEND_SWATCH_H,
-  LEGEND_SWATCH_W,
-} from './drawingLayout';
+import { computeSheetLayout } from './drawingLayout';
+import { DrawingFrame } from './DrawingFrame';
+import { TitleBlock } from './TitleBlock';
+import { DrawingSpecTable } from './DrawingSpecTable';
 import { ApprovalBlock } from './ApprovalBlock';
 import { DrawingSizeInfo } from './DrawingSizeInfo';
-import { getCalculatedLayoutWidthMm, getRequestedLayoutWidthMm } from './drawingSizeMetrics';
-import { DrawingSpecTable } from './DrawingSpecTable';
-import { LegendSwatch } from './LegendSwatch';
+import { buildLegendAnchors, LegendLeaderLines } from './LegendLeaderLines';
 
 type Props = {
   config: ProductConfig;
@@ -25,32 +34,26 @@ type Props = {
   forExport?: boolean;
 };
 
-const WIDTH_DIM_GAP = 24;
-
 export const DrawingSheet = ({ config, calculation, forExport = false }: Props) => {
-  const width = DRAWING_EXPORT_WIDTH;
-  const height = DRAWING_EXPORT_HEIGHT;
+  const width = SHEET_WIDTH_PX;
+  const height = SHEET_HEIGHT_PX;
   const cableLayout = calculation.cableLayout;
   const cableCount = cableLayout?.count ?? 0;
   const hasCableAnnotation = Boolean(cableLayout && cableLayout.spacingsMm.length > 0);
 
-  const legendTypes = deriveLegendTypesFromStrips(
-    config.strips,
-    config.layoutPattern,
-    config.autoFillEnabled ?? false,
-  );
-  const layout = computeSheetLayout({
-    sheetW: width,
-    sheetH: height,
-    hasCableAnnotation,
-    legendCount: legendTypes.length,
-  });
+  const layout = computeSheetLayout({ hasCableAnnotation });
 
+  // Полотно максимально заполняет отведённую область (без уменьшения до стандартного масштаба).
   const matLayout = buildLayoutGeometry(config, layout.matW, layout.matH, layout.matX, layout.matY, {
     fit: 'contain',
     align: 'center',
+    sizeFactor: 0.98,
   });
   const layoutRects = matLayout.rects;
+  const lengthPxPerMm = getLengthPxPerMm(matLayout.matWidthPx, config.totalLengthMm);
+  const drawnWidthMm = matLayout.scale > 0 ? matLayout.matHeightPx / matLayout.scale : 0;
+  const legendAnchors = buildLegendAnchors(layoutRects, config.strips);
+
   const cableLinesX =
     cableLayout && config.totalLengthMm > 0
       ? cablePositionsAlongLength(
@@ -60,14 +63,17 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           cableLayout.positionsMm,
         )
       : [];
-  const requestedWidthMm = getRequestedLayoutWidthMm(calculation);
-  const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
-  const lengthPxPerMm = getLengthPxPerMm(matLayout.matWidthPx, config.totalLengthMm);
-  const widthToY = (widthMm: number): number => matLayout.matY + widthMm * matLayout.scale;
-  const requestedDimX = layout.widthDimX + WIDTH_DIM_GAP;
-  const calculatedDimX = layout.widthDimX;
+
   const layoutComplete = !calculation.isUnderfilled;
   const drawingWarnings = getScraperEdgeWarnings(config.strips, layoutComplete);
+
+  const naturalRatio = matLayout.scale / SHEET_PX_PER_MM;
+  const scaleLabel = formatScaleLabel(snapStandardScale(naturalRatio));
+  const designation = deriveDesignation(config);
+  const productName = deriveProductName(config);
+  const matRight = matLayout.matX + matLayout.matWidthPx;
+  const legendLabelX = matRight + mm(5);
+  const widthDimX = Math.min(layout.rightColX - mm(10), legendLabelX + mm(36));
 
   return (
     <div
@@ -92,31 +98,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
       >
         <ProfileTextureDefs widthScale={matLayout.scale} lengthPxPerMm={lengthPxPerMm} idPrefix="drawing" />
 
-        <rect x={16} y={16} width={width - 32} height={height - 32} fill="#fff" stroke="#111827" strokeWidth={1.5} />
-
-        <text x={40} y={48} className="sheet-title">
-          Технический лист грязезащитного покрытия
-        </text>
-        <text x={40} y={70} className="sheet-meta">{`Проект: ${config.projectName}`}</text>
-        <text x={40} y={90} className="sheet-meta">{`Клиент: ${config.clientName || '—'} · Менеджер: ${config.managerName || '—'}`}</text>
-
-        <ApprovalBlock
-          x={layout.approvalX}
-          y={layout.approvalY}
-          width={layout.approvalW}
-          year={new Date(config.updatedAt).getFullYear()}
-        />
-
-        {hasCableAnnotation && cableLayout && (
-          <CableSpacingAnnotation
-            matX={matLayout.matX}
-            matY={matLayout.matY}
-            matW={matLayout.matWidthPx}
-            totalLengthMm={config.totalLengthMm}
-            edgeOffsetMm={cableLayout.edgeOffsetMm}
-            spacingsMm={cableLayout.spacingsMm}
-          />
-        )}
+        <DrawingFrame />
 
         <rect
           x={matLayout.matX}
@@ -124,8 +106,8 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           width={matLayout.matWidthPx}
           height={matLayout.matHeightPx}
           fill="#fff"
-          stroke="#1f2937"
-          strokeWidth={1.2}
+          stroke="#000"
+          strokeWidth={LINE_THICK_PX}
         />
 
         {layoutRects.map((rect, index) => {
@@ -137,10 +119,10 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
                 y={rect.y}
                 width={rect.width}
                 height={rect.height}
-                fill="#f1f5f9"
-                stroke="#94a3b8"
-                strokeWidth={0.35}
-                strokeDasharray="2 2"
+                fill="#fff"
+                stroke="#000"
+                strokeWidth={LINE_THIN_PX}
+                strokeDasharray="3 2"
               />
             );
           }
@@ -157,8 +139,8 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
               widthScale={matLayout.scale}
               lengthPxPerMm={lengthPxPerMm}
               lengthAlong="x"
-              stroke="#334155"
-              strokeWidth={0.5}
+              stroke="#000"
+              strokeWidth={LINE_THIN_PX}
               idPrefix="drawing"
             />
           );
@@ -166,88 +148,81 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
 
         {cableLinesX.map((lineX, index) => (
           <line
-            key={`cable-guide-${index}`}
+            key={`cable-axis-${index}`}
             x1={lineX}
-            y1={matLayout.matY}
+            y1={matLayout.matY - mm(2)}
             x2={lineX}
-            y2={matLayout.matY + matLayout.matHeightPx}
-            stroke="#94a3b8"
-            strokeWidth={0.5}
-            strokeDasharray="5 4"
+            y2={matLayout.matY + matLayout.matHeightPx + mm(2)}
+            stroke="#000"
+            strokeWidth={LINE_THIN_PX}
+            strokeDasharray="12 3 2 3"
           />
         ))}
 
+        {hasCableAnnotation && cableLayout && (
+          <CableSpacingAnnotation
+            matX={matLayout.matX}
+            matY={matLayout.matY}
+            matW={matLayout.matWidthPx}
+            totalLengthMm={config.totalLengthMm}
+            edgeOffsetMm={cableLayout.edgeOffsetMm}
+            spacingsMm={cableLayout.spacingsMm}
+          />
+        )}
+
         <HorizontalDimension
           x1={matLayout.matX}
-          x2={matLayout.matX + matLayout.matWidthPx}
+          x2={matRight}
           y={layout.lengthDimY}
           objectY1={matLayout.matY + matLayout.matHeightPx}
           objectY2={matLayout.matY + matLayout.matHeightPx}
-          label={`Ширина ${config.totalLengthMm.toFixed(0)}`}
-        />
-
-        <VerticalDimension
-          x={requestedDimX}
-          y1={matLayout.matY}
-          y2={widthToY(requestedWidthMm)}
-          objectX1={matLayout.matX + matLayout.matWidthPx}
-          objectX2={matLayout.matX + matLayout.matWidthPx}
-          label={`Длина запр. ${Math.round(requestedWidthMm)}`}
-          labelOffset={12}
+          label={`${Math.round(config.totalLengthMm)}`}
         />
         <VerticalDimension
-          x={calculatedDimX}
+          x={widthDimX}
           y1={matLayout.matY}
-          y2={widthToY(calculatedWidthMm)}
-          objectX1={matLayout.matX + matLayout.matWidthPx}
-          objectX2={matLayout.matX + matLayout.matWidthPx}
-          label={`Длина расч. ${Math.round(calculatedWidthMm)}`}
-          labelOffset={12}
+          y2={matLayout.matY + matLayout.matHeightPx}
+          objectX1={matRight}
+          objectX2={matRight}
+          label={`${Math.round(drawnWidthMm)}`}
         />
 
-        <rect
-          x={layout.legendX}
-          y={layout.legendY}
-          width={layout.legendW}
-          height={layout.legendH}
-          fill="#f8fafc"
-          stroke="#cbd5e1"
-          strokeWidth={1}
-          rx={6}
+        {legendAnchors.length > 0 && (
+          <LegendLeaderLines matRight={matRight} anchors={legendAnchors} labelX={legendLabelX} />
+        )}
+
+        <ApprovalBlock
+          x={layout.approvalX}
+          y={layout.approvalY}
+          width={layout.rightColW}
+          year={new Date(config.updatedAt).getFullYear()}
         />
-        <text x={layout.legendX + 14} y={layout.legendY + 22} className="sheet-subtitle">
-          Легенда
-        </text>
-        {legendTypes.map((type, i) => {
-          const rowY = layout.legendY + 34 + i * LEGEND_ROW_H;
-          return (
-            <g key={`legend-${type}-${i}`}>
-              <LegendSwatch
-                type={type}
-                x={layout.legendX + 14}
-                y={rowY}
-                width={LEGEND_SWATCH_W}
-                height={LEGEND_SWATCH_H}
-                forExport={forExport}
-              />
-              <text x={layout.legendX + 14 + LEGEND_SWATCH_W + 10} y={rowY + 15} className="sheet-meta sheet-meta--legend">
-                {moduleDefinitions[type].shortName}
-              </text>
-            </g>
-          );
-        })}
 
         <DrawingSizeInfo
           x={layout.sizeInfoX}
           y={layout.sizeInfoY}
+          width={layout.rightColW}
           config={config}
           calculation={calculation}
         />
 
-        <text x={40} y={layout.specY} className="sheet-subtitle">
-          Спецификация
-        </text>
-        <DrawingSpecTable x={40} y={layout.specY + 16} calculation={calculation} cableCount={cableCount} />
+        <DrawingSpecTable
+          x={layout.specX}
+          y={layout.specY}
+          calculation={calculation}
+          cableCount={cableCount}
+        />
+
+        <TitleBlock
+          x={layout.titleBlockX}
+          y={layout.titleBlockY}
+          designation={designation}
+          productName={productName}
+          documentTitle={ESKD_DOCUMENT_TITLE}
+          scaleLabel={scaleLabel}
+          developer={config.managerName ?? ''}
+          orgName={ESKD_ORG_NAME}
+        />
       </svg>
     </div>
   );

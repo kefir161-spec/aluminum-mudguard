@@ -1,10 +1,11 @@
 import { syncFitLineBadges } from '../renderers/fitLineBadge';
+import { SHEET_HEIGHT_PX, SHEET_WIDTH_PX } from '../domain/eskd';
 import { ensureExportImagesReady, patchExportImageHrefs, preloadPatchedImages } from './profileImageCache';
 import { exportNodeToPdf } from './exportPdf';
 import { exportNodeToPng } from './exportPng';
 
-export const DRAWING_EXPORT_WIDTH = 1100;
-export const DRAWING_EXPORT_HEIGHT = 880;
+export const DRAWING_EXPORT_WIDTH = SHEET_WIDTH_PX;
+export const DRAWING_EXPORT_HEIGHT = SHEET_HEIGHT_PX;
 export const DRAWING_EXPORT_ID = 'drawing-sheet-export';
 
 const sanitizeFileName = (name: string): string =>

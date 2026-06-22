@@ -24,6 +24,10 @@ export const formatDrawingSizePair = (widthMm: number, lengthMm: number): string
 export const formatCompactDrawingSizePair = (widthMm: number, lengthMm: number): string =>
   `${Math.round(widthMm)}×${Math.round(lengthMm)} мм`;
 
+/** Размер ковра для чертежа: длина×ширина (вертикаль×горизонталь), как на эталоне. */
+export const formatMatSizePair = (lengthMm: number, widthMm: number): string =>
+  `${Math.round(lengthMm)}х${Math.round(widthMm)} мм`;
+
 export const formatPitSubtitle = (widthMm: number, lengthMm: number): string =>
   `приямок ${Math.round(widthMm)}×${Math.round(lengthMm)} мм`;
 

@@ -1,3 +1,5 @@
+import { LINE_THIN_PX, mm } from '../domain/eskd';
+
 type HorizontalDimensionProps = {
   x1: number;
   x2: number;
@@ -19,16 +21,26 @@ type VerticalDimensionProps = {
   labelOffset?: number;
 };
 
+/** Длина стрелки и половина её ширины по ГОСТ 2.307. */
+const ARROW_LEN = mm(2.5);
+const ARROW_HALF = mm(0.85);
+/** Выход выносной линии за размерную по ГОСТ 2.307 (1…5 мм). */
+const EXT_OVERSHOOT = mm(1.5);
+/** Зазор размерного числа над размерной линией (~1 мм). */
+const LABEL_GAP = mm(1);
+
 const dimLine = (x1: number, y1: number, x2: number, y2: number, key: string) => (
-  <line key={key} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#334155" strokeWidth={0.75} />
+  <line key={key} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#000" strokeWidth={LINE_THIN_PX} />
 );
 
 const arrowOut = (x: number, y: number, dir: 'up' | 'down' | 'left' | 'right', key: string) => {
-  const s = 3.5;
-  if (dir === 'up') return <polygon key={key} points={`${x},${y} ${x - s},${y + s} ${x + s},${y + s}`} fill="#334155" />;
-  if (dir === 'down') return <polygon key={key} points={`${x},${y} ${x - s},${y - s} ${x + s},${y - s}`} fill="#334155" />;
-  if (dir === 'left') return <polygon key={key} points={`${x},${y} ${x + s},${y - s} ${x + s},${y + s}`} fill="#334155" />;
-  return <polygon key={key} points={`${x},${y} ${x - s},${y - s} ${x - s},${y + s}`} fill="#334155" />;
+  if (dir === 'up')
+    return <polygon key={key} points={`${x},${y} ${x - ARROW_HALF},${y + ARROW_LEN} ${x + ARROW_HALF},${y + ARROW_LEN}`} fill="#000" />;
+  if (dir === 'down')
+    return <polygon key={key} points={`${x},${y} ${x - ARROW_HALF},${y - ARROW_LEN} ${x + ARROW_HALF},${y - ARROW_LEN}`} fill="#000" />;
+  if (dir === 'left')
+    return <polygon key={key} points={`${x},${y} ${x + ARROW_LEN},${y - ARROW_HALF} ${x + ARROW_LEN},${y + ARROW_HALF}`} fill="#000" />;
+  return <polygon key={key} points={`${x},${y} ${x - ARROW_LEN},${y - ARROW_HALF} ${x - ARROW_LEN},${y + ARROW_HALF}`} fill="#000" />;
 };
 
 /** Горизонтальный размер с выносными линиями. */
@@ -40,18 +52,21 @@ export const HorizontalDimension = ({
   objectY2,
   label,
   className = 'dim-annotation',
-}: HorizontalDimensionProps) => (
-  <g className={className}>
-    {dimLine(x1, objectY1, x1, y, 'ext-l')}
-    {dimLine(x2, objectY2, x2, y, 'ext-r')}
-    {dimLine(x1, y, x2, y, 'dim')}
-    {arrowOut(x1, y, 'left', 'arr-l')}
-    {arrowOut(x2, y, 'right', 'arr-r')}
-    <text x={(x1 + x2) / 2} y={y - 6} textAnchor="middle" className="dim-label">
-      {label}
-    </text>
-  </g>
-);
+}: HorizontalDimensionProps) => {
+  const dir = Math.sign(y - objectY1) || 1;
+  return (
+    <g className={className}>
+      {dimLine(x1, objectY1, x1, y + dir * EXT_OVERSHOOT, 'ext-l')}
+      {dimLine(x2, objectY2, x2, y + dir * EXT_OVERSHOOT, 'ext-r')}
+      {dimLine(x1, y, x2, y, 'dim')}
+      {arrowOut(x1, y, 'left', 'arr-l')}
+      {arrowOut(x2, y, 'right', 'arr-r')}
+      <text x={(x1 + x2) / 2} y={y - LABEL_GAP} textAnchor="middle" className="dim-label">
+        {label}
+      </text>
+    </g>
+  );
+};
 
 type VerticalDimensionExtendedProps = VerticalDimensionProps & {
   anchorY1?: number;
@@ -76,11 +91,12 @@ export const VerticalDimension = ({
   const extY1 = anchorY1 ?? y1;
   const extY2 = anchorY2 ?? y2;
   const midY = (y1 + y2) / 2;
+  const dir = Math.sign(x - objectX1) || 1;
 
   return (
     <g className={className}>
-      {dimLine(objectX1, extY1, x, extY1, 'ext-t')}
-      {dimLine(objectX2, extY2, x, extY2, 'ext-b')}
+      {dimLine(objectX1, extY1, x + dir * EXT_OVERSHOOT, extY1, 'ext-t')}
+      {dimLine(objectX2, extY2, x + dir * EXT_OVERSHOOT, extY2, 'ext-b')}
       {dimLine(x, y1, x, y2, 'dim')}
       {arrowOut(x, y1, 'up', 'arr-t')}
       {arrowOut(x, y2, 'down', 'arr-b')}

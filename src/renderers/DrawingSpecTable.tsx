@@ -1,11 +1,5 @@
-import { useLayoutEffect, useRef } from 'react';
+import { LINE_THICK_PX, LINE_THIN_PX, mm } from '../domain/eskd';
 import type { CalculationResult } from '../domain/types';
-import {
-  FIT_LINE_BOX_H,
-  FIT_LINE_PAD_X,
-  FIT_LINE_PAD_Y,
-  measureFitLineBadgeWidth,
-} from './fitLineBadge';
 import { buildDrawingFitLine, buildSpecRows } from './drawingSpecTableData';
 
 type Props = {
@@ -15,81 +9,67 @@ type Props = {
   cableCount: number;
 };
 
-const COL1_W = 280;
-const COL2_W = 120;
-const ROW_H = 22;
+const COL1_W = mm(52);
+const COL2_W = mm(22);
+const ROW_H = mm(6);
+const HEADER_H = mm(7);
+
+export const SPEC_TABLE_WIDTH_MM = 74;
 export const SPEC_TABLE_WIDTH = COL1_W + COL2_W;
-const TABLE_W = SPEC_TABLE_WIDTH;
-const FitLineBadge = ({ x, y, text }: { x: number; y: number; text: string }) => {
-  const textRef = useRef<SVGTextElement>(null);
-  const rectRef = useRef<SVGRectElement>(null);
-  const textY = y + FIT_LINE_PAD_Y + 16;
 
-  useLayoutEffect(() => {
-    const textEl = textRef.current;
-    const rectEl = rectRef.current;
-    if (!textEl || !rectEl) return;
-    rectEl.setAttribute('width', String(measureFitLineBadgeWidth(textEl)));
-  }, [text]);
+export const computeSpecHeight = (rowCount: number): number => HEADER_H + rowCount * ROW_H;
 
-  return (
-    <g className="sheet-spec-fit">
-      <rect
-        ref={rectRef}
-        x={x}
-        y={y}
-        width={1}
-        height={FIT_LINE_BOX_H}
-        fill="#fffbeb"
-        stroke="#d97706"
-        strokeWidth={1}
-        rx={4}
-      />
-      <text ref={textRef} x={x + FIT_LINE_PAD_X} y={textY} className="sheet-spec-fit-line">
-        {text}
-      </text>
-    </g>
-  );
-};
+const FONT_HEAD = 8;
+const FONT_CELL = 9;
 
+/** Таблица комплектации (как на эталонном чертеже). */
 export const DrawingSpecTable = ({ x, y, calculation, cableCount }: Props) => {
   const rows = buildSpecRows(calculation, cableCount);
   const fitLine = buildDrawingFitLine(calculation);
-  const headerH = ROW_H;
-  const bodyH = rows.length * ROW_H;
-  const tableH = headerH + bodyH;
+  const tableW = SPEC_TABLE_WIDTH;
+  const tableH = computeSpecHeight(rows.length);
 
   return (
     <g className="sheet-spec-table">
-      <rect x={x} y={y} width={TABLE_W} height={tableH} fill="#fff" stroke="#111827" strokeWidth={1} />
-      <line x1={x} y1={y + headerH} x2={x + TABLE_W} y2={y + headerH} stroke="#111827" strokeWidth={0.75} />
-      <line x1={x + COL1_W} y1={y} x2={x + COL1_W} y2={y + tableH} stroke="#111827" strokeWidth={0.75} />
+      <rect x={x} y={y} width={tableW} height={tableH} fill="#fff" stroke="#000" strokeWidth={LINE_THICK_PX} />
+      <line x1={x} y1={y + HEADER_H} x2={x + tableW} y2={y + HEADER_H} stroke="#000" strokeWidth={LINE_THIN_PX} />
+      <line x1={x + COL1_W} y1={y} x2={x + COL1_W} y2={y + tableH} stroke="#000" strokeWidth={LINE_THIN_PX} />
 
-      <text x={x + 8} y={y + 15} className="sheet-spec-cell sheet-spec-cell--head">
+      <text x={x + mm(2)} y={y + mm(5)} className="eskd-text sheet-spec-cell--head" style={{ fontSize: FONT_HEAD }}>
         Комплектация
       </text>
-      <text x={x + COL1_W + 8} y={y + 15} className="sheet-spec-cell sheet-spec-cell--head">
+      <text x={x + COL1_W + mm(2)} y={y + mm(5)} className="eskd-text sheet-spec-cell--head" style={{ fontSize: FONT_HEAD }}>
         Количество, шт
       </text>
 
       {rows.map((row, index) => {
-        const rowY = y + headerH + index * ROW_H;
+        const rowY = y + HEADER_H + index * ROW_H;
         return (
           <g key={row.label}>
             {index > 0 && (
-              <line x1={x} y1={rowY} x2={x + TABLE_W} y2={rowY} stroke="#111827" strokeWidth={0.5} />
+              <line x1={x} y1={rowY} x2={x + tableW} y2={rowY} stroke="#000" strokeWidth={LINE_THIN_PX} />
             )}
-            <text x={x + 8} y={rowY + 15} className="sheet-spec-cell">
+            <text x={x + mm(2)} y={rowY + mm(4.5)} className="eskd-text" style={{ fontSize: FONT_CELL }}>
               {row.label}
             </text>
-            <text x={x + COL1_W + COL2_W - 10} y={rowY + 15} textAnchor="end" className="sheet-spec-cell">
+            <text
+              x={x + COL1_W + COL2_W - mm(2)}
+              y={rowY + mm(4.5)}
+              textAnchor="end"
+              className="eskd-text"
+              style={{ fontSize: FONT_CELL }}
+            >
               {row.count}
             </text>
           </g>
         );
       })}
 
-      {fitLine && <FitLineBadge x={x} y={y + tableH + 10} text={fitLine} />}
+      {fitLine && (
+        <text x={x} y={y + tableH + mm(5)} className="eskd-text sheet-spec-fit-line" style={{ fontSize: 8 }}>
+          {fitLine}
+        </text>
+      )}
     </g>
   );
 };

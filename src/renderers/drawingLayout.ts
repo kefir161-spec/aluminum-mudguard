@@ -1,93 +1,85 @@
-import { APPROVAL_BLOCK_HEIGHT } from './ApprovalBlock';
+import { mm } from '../domain/eskd';
+import { APPROVAL_BLOCK_HEIGHT_MM } from './ApprovalBlock';
+import { getFrameBounds } from './DrawingFrame';
 
 export type SheetLayout = {
   matX: number;
   matY: number;
   matW: number;
   matH: number;
-  legendX: number;
-  legendY: number;
-  legendW: number;
-  legendH: number;
-  widthDimX: number;
-  sizeInfoX: number;
-  sizeInfoY: number;
-  specY: number;
-  specW: number;
+  rightColX: number;
+  rightColW: number;
   approvalX: number;
   approvalY: number;
-  approvalW: number;
+  sizeInfoX: number;
+  sizeInfoY: number;
+  specX: number;
+  specY: number;
+  titleBlockX: number;
+  titleBlockY: number;
   lengthDimY: number;
 };
 
 type LayoutInput = {
-  sheetW: number;
-  sheetH: number;
   hasCableAnnotation: boolean;
-  legendCount: number;
 };
 
-const MARGIN = 40;
-const HEADER_BOTTOM = 100;
-const RIGHT_COL_W = 248;
-const WIDTH_DIM_W = 80;
-const SPEC_BLOCK_H = 210;
-const CABLE_ZONE_H = 46;
-const LENGTH_DIM_ZONE_H = 34;
-const SECTION_GAP = 16;
-const RIGHT_SECTION_GAP = 14;
-
-export const LEGEND_ROW_H = 36;
-export const LEGEND_SWATCH_W = 76;
-export const LEGEND_SWATCH_H = 22;
-
-export const computeLegendHeight = (legendCount: number): number =>
-  legendCount > 0 ? 30 + legendCount * LEGEND_ROW_H + 8 : 100;
+const TITLE_BLOCK_W_MM = 185;
+const TITLE_BLOCK_H_MM = 55;
+const RIGHT_COL_W_MM = 74;
+const LEGEND_ZONE_W_MM = 38;
+const WIDTH_DIM_W_MM = 14;
+const CABLE_ZONE_H_MM = 14;
+const LENGTH_DIM_ZONE_H_MM = 12;
 
 /**
- * Компоновка листа: ковёр слева (крупно), легенда и размеры справа, спецификация снизу.
+ * Компоновка листа: крупное полотно слева, выноски и размеры справа от него,
+ * блок «Согласовано», размеры ковра и комплектация — в правой колонке.
  */
-export const computeSheetLayout = ({
-  sheetW,
-  sheetH,
-  hasCableAnnotation,
-  legendCount,
-}: LayoutInput): SheetLayout => {
-  const rightColX = sheetW - MARGIN - RIGHT_COL_W;
-  const approvalY = 36;
-  const legendH = computeLegendHeight(legendCount);
-  const legendY = approvalY + APPROVAL_BLOCK_HEIGHT + RIGHT_SECTION_GAP;
-  const sizeInfoY = legendY + legendH + RIGHT_SECTION_GAP;
-  const mainTop = HEADER_BOTTOM + 8;
-  const mainBottom = sheetH - MARGIN - SPEC_BLOCK_H;
-  const mainH = mainBottom - mainTop;
-  const cableZoneH = hasCableAnnotation ? CABLE_ZONE_H : 0;
+export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLayout => {
+  const frame = getFrameBounds();
 
-  const matX = MARGIN;
-  const matW = rightColX - MARGIN - WIDTH_DIM_W - SECTION_GAP;
+  const titleBlockX = frame.right - mm(TITLE_BLOCK_W_MM);
+  const titleBlockY = frame.bottom - mm(TITLE_BLOCK_H_MM);
+
+  const rightColX = frame.right - mm(RIGHT_COL_W_MM);
+  const rightColW = mm(RIGHT_COL_W_MM);
+
+  const approvalX = rightColX;
+  const approvalY = frame.top + mm(3);
+
+  const sizeInfoX = rightColX + rightColW;
+  const sizeInfoY = approvalY + mm(APPROVAL_BLOCK_HEIGHT_MM) + mm(4);
+
+  const specX = rightColX;
+  const specY = sizeInfoY + mm(14);
+
+  const mainTop = frame.top + mm(2);
+  const mainBottom = titleBlockY - mm(2);
+  const cableZoneH = hasCableAnnotation ? mm(CABLE_ZONE_H_MM) : 0;
+
+  const matX = frame.left + mm(3);
+  const matW = rightColX - matX - mm(LEGEND_ZONE_W_MM) - mm(WIDTH_DIM_W_MM) - mm(3);
   const matY = mainTop + cableZoneH;
-  const matH = mainH - cableZoneH - LENGTH_DIM_ZONE_H;
-  const widthDimX = matX + matW + 10;
-  const specY = sheetH - MARGIN - SPEC_BLOCK_H + 6;
-  const lengthDimY = matY + matH + 22;
+  const matH = mainBottom - matY - mm(LENGTH_DIM_ZONE_H_MM);
+
+  const lengthDimY = matY + matH + mm(8);
 
   return {
     matX,
     matY,
     matW,
     matH,
-    legendX: rightColX,
-    legendY,
-    legendW: RIGHT_COL_W,
-    legendH,
-    widthDimX,
-    sizeInfoX: rightColX,
-    sizeInfoY,
-    specY,
-    specW: sheetW - MARGIN * 2,
-    approvalX: rightColX,
+    rightColX,
+    rightColW,
+    approvalX,
     approvalY,
-    approvalW: RIGHT_COL_W,
+    sizeInfoX,
+    sizeInfoY,
+    specX,
+    specY,
+    titleBlockX,
+    titleBlockY,
     lengthDimY,
   };
 };
