@@ -1,6 +1,9 @@
 import {
   CABLE_EDGE_OFFSET_MAX_MM,
   CABLE_EDGE_OFFSET_MIN_MM,
+  CABLE_SPACING_MAX_MM,
+  CABLE_SPACING_MIN_MM,
+  MAX_CABLES,
   MAX_ORDER_DIMENSION_MM,
   MIN_ORDER_DIMENSION_MM,
 } from './constants';
@@ -22,6 +25,11 @@ export const clampIntegerMm = (value: number, min: number, max: number): number 
 
 export const clampCableEdgeOffset = (value: number): number =>
   clampIntegerMm(value, CABLE_EDGE_OFFSET_MIN_MM, CABLE_EDGE_OFFSET_MAX_MM);
+
+export const clampCableCount = (value: number): number => clampIntegerMm(value, 1, MAX_CABLES);
+
+export const clampCableSpacing = (value: number): number =>
+  clampIntegerMm(value, CABLE_SPACING_MIN_MM, CABLE_SPACING_MAX_MM);
 
 /** Значение для input type=number без экспоненциальной записи */
 export const formatMmInput = (value: number, fractionDigits = 1): number => {

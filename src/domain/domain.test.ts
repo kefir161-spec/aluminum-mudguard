@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MODULE_GAP_MM, PLANK_WIDTH_MM, SCRAPER_WIDTH_MM } from './constants';
-import { computeCableLayout } from './cableLayout';
+import { computeCableLayout, buildManualCableLayout, resolveCableLayout } from './cableLayout';
 import {
   computeLayoutWidth,
   countPlugs,
@@ -140,6 +140,43 @@ describe('cableLayout', () => {
     const layout = computeCableLayout(1180);
     expect(layout).not.toBeNull();
     expect(layout?.count).toBeGreaterThanOrEqual(2);
+  });
+
+  it('auto layout for 2000 mm prefers 7 cables at 300 mm', () => {
+    const layout = computeCableLayout(2000);
+    expect(layout).toEqual({
+      positionsMm: [100, 400, 700, 1000, 1300, 1600, 1900],
+      spacingsMm: [300, 300, 300, 300, 300, 300],
+      edgeOffsetMm: 100,
+      count: 7,
+    });
+  });
+
+  it('manual layout for 2000 mm with 6 cables at 360 mm', () => {
+    const layout = buildManualCableLayout(2000, 6, 360, 100);
+    expect(layout).toEqual({
+      positionsMm: [100, 460, 820, 1180, 1540, 1900],
+      spacingsMm: [360, 360, 360, 360, 360],
+      edgeOffsetMm: 100,
+      count: 6,
+    });
+  });
+
+  it('resolveCableLayout uses manual settings when mode is manual', () => {
+    const layout = resolveCableLayout(2000, {
+      mode: 'manual',
+      manualCount: 6,
+      manualSpacingMm: 360,
+      edgeOffsetMm: 100,
+    });
+    expect(layout?.count).toBe(6);
+    expect(layout?.spacingsMm).toEqual([360, 360, 360, 360, 360]);
+  });
+
+  it('resolveCableLayout defaults to auto', () => {
+    const auto = computeCableLayout(2000);
+    const resolved = resolveCableLayout(2000, { mode: 'auto' });
+    expect(resolved).toEqual(auto);
   });
 });
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { CABLE_EDGE_OFFSET_DEFAULT_MM } from '../domain/constants';
+import { computeCableLayout } from '../domain/cableLayout';
+import { CABLE_EDGE_OFFSET_DEFAULT_MM, CABLE_SPACING_MIN_MM } from '../domain/constants';
 import {
   getOrderTargetDimensions,
   resolveCarpetDimensions,
@@ -18,7 +19,7 @@ import {
   SCRAPER_AT_START_WARNING,
 } from '../domain/layoutRules';
 import type { DimensionSource, LayoutPreset, ModuleType, ProductConfig, Strip } from '../domain/types';
-import { clampCableEdgeOffset, clampOrderDimensionMm, clampMm } from '../domain/numbers';
+import { clampCableCount, clampCableEdgeOffset, clampCableSpacing, clampOrderDimensionMm, clampMm } from '../domain/numbers';
 import { productionConstants } from '../domain/validation';
 import { createDemoProjects, demoProjectIdSet } from '../data/demoProjects';
 import { deleteProjectById, loadStorage, upsertProject } from '../storage/projectStorage';
@@ -48,6 +49,14 @@ type StoreState = {
   clearAllStrips: () => void;
   setFitToOrderSize: (fitToOrderSize: boolean) => void;
   setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled: boolean) => void;
+  setCableLayout: (
+    partial: Partial<
+      Pick<
+        ProductConfig,
+        'cableLayoutMode' | 'manualCableCount' | 'manualCableSpacingMm' | 'cableEdgeOffsetMm'
+      >
+    >,
+  ) => void;
   newProject: (projectName?: string) => void;
   saveCurrentProject: () => void;
   loadProject: (projectId: string) => void;
@@ -78,6 +87,7 @@ const normalizeConfig = (config: ProductConfig): ProductConfig => {
     orderWidthMm: clampOrderDimensionMm(orderWidthMm),
     orderLengthMm: clampOrderDimensionMm(orderLengthMm),
     cableEdgeOffsetMm: config.cableEdgeOffsetMm ?? CABLE_EDGE_OFFSET_DEFAULT_MM,
+    cableLayoutMode: config.cableLayoutMode ?? 'auto',
     defaultStripWidthMm: config.defaultStripWidthMm ?? productionConstants.defaultStripWidthMm,
     fitToOrderSize: config.fitToOrderSize ?? false,
     narrowWidthDiscountEnabled: config.narrowWidthDiscountEnabled ?? false,
@@ -115,6 +125,7 @@ const createNewProject = (): ProductConfig => {
     defaultStripWidthMm: productionConstants.defaultStripWidthMm,
     layoutPattern: ['rubber', 'pile'],
     cableEdgeOffsetMm: CABLE_EDGE_OFFSET_DEFAULT_MM,
+    cableLayoutMode: 'auto',
     fitToOrderSize: false,
     narrowWidthDiscountEnabled: false,
     autoFillEnabled: false,
@@ -331,6 +342,36 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
     set((state) => ({
       config: withUpdatedAt({ ...state.config, narrowWidthDiscountEnabled }),
     })),
+  setCableLayout: (partial) =>
+    set((state) => {
+      const switchingToManual =
+        partial.cableLayoutMode === 'manual' && state.config.cableLayoutMode !== 'manual';
+      const autoLayout = switchingToManual ? computeCableLayout(state.config.totalLengthMm) : null;
+
+      const next: ProductConfig = {
+        ...state.config,
+        ...partial,
+        cableLayoutMode: partial.cableLayoutMode ?? state.config.cableLayoutMode ?? 'auto',
+      };
+
+      if (switchingToManual && autoLayout) {
+        next.manualCableCount = autoLayout.count;
+        next.manualCableSpacingMm = autoLayout.spacingsMm[0] ?? CABLE_SPACING_MIN_MM;
+        next.cableEdgeOffsetMm = autoLayout.edgeOffsetMm;
+      }
+
+      if (partial.manualCableCount !== undefined) {
+        next.manualCableCount = clampCableCount(partial.manualCableCount);
+      }
+      if (partial.manualCableSpacingMm !== undefined) {
+        next.manualCableSpacingMm = clampCableSpacing(partial.manualCableSpacingMm);
+      }
+      if (partial.cableEdgeOffsetMm !== undefined) {
+        next.cableEdgeOffsetMm = clampCableEdgeOffset(partial.cableEdgeOffsetMm);
+      }
+
+      return { config: withUpdatedAt(next) };
+    }),
   newProject: (projectName) => {
     const project = createNewProject();
     const trimmedName = projectName?.trim();

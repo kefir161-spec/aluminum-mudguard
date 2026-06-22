@@ -7,11 +7,20 @@ import {
   MAX_CABLES,
 } from './constants';
 
+export type CableLayoutMode = 'auto' | 'manual';
+
 export type CableLayout = {
   positionsMm: number[];
   spacingsMm: number[];
   edgeOffsetMm: number;
   count: number;
+};
+
+export type CableLayoutOptions = {
+  mode?: CableLayoutMode;
+  manualCount?: number;
+  manualSpacingMm?: number;
+  edgeOffsetMm?: number;
 };
 
 /** Чем меньше — тем «красивее» число для чертежа. */
@@ -112,4 +121,42 @@ export const computeCableLayout = (lengthMm: number): CableLayout | null => {
   }
 
   return bestLayout;
+};
+
+/** Ручная раскладка: симметричные отступы, равномерный шаг между тросами. */
+export const buildManualCableLayout = (
+  lengthMm: number,
+  count: number,
+  spacingMm: number,
+  edgeOffsetMm: number,
+): CableLayout | null => {
+  if (lengthMm <= 0 || count < 1 || count > MAX_CABLES) return null;
+  if (edgeOffsetMm < CABLE_EDGE_OFFSET_MIN_MM || edgeOffsetMm > CABLE_EDGE_OFFSET_MAX_MM) return null;
+
+  if (count === 1) {
+    if (edgeOffsetMm !== lengthMm - edgeOffsetMm) return null;
+    return { positionsMm: [edgeOffsetMm], spacingsMm: [], edgeOffsetMm, count: 1 };
+  }
+
+  if (!isValidSpacing(spacingMm)) return null;
+
+  const span = lengthMm - 2 * edgeOffsetMm;
+  if (span !== (count - 1) * spacingMm) return null;
+
+  return buildLayoutFromSpacings(edgeOffsetMm, Array.from({ length: count - 1 }, () => spacingMm));
+};
+
+/** Авто или ручная раскладка тросов в зависимости от настроек проекта. */
+export const resolveCableLayout = (lengthMm: number, options: CableLayoutOptions = {}): CableLayout | null => {
+  if (options.mode !== 'manual') {
+    return computeCableLayout(lengthMm);
+  }
+
+  const count = options.manualCount;
+  const spacingMm = options.manualSpacingMm;
+  const edgeOffsetMm = options.edgeOffsetMm ?? CABLE_EDGE_OFFSET_DEFAULT_MM;
+
+  if (count === undefined || spacingMm === undefined) return null;
+
+  return buildManualCableLayout(lengthMm, count, spacingMm, edgeOffsetMm);
 };

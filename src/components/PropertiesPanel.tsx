@@ -1,5 +1,14 @@
 import { moduleTypeOrder, moduleDefinitions } from '../domain/moduleDefinitions';
-import { PIT_INSET_MM, MAX_ORDER_DIMENSION_MM, MIN_ORDER_DIMENSION_MM } from '../domain/constants';
+import {
+  CABLE_EDGE_OFFSET_MAX_MM,
+  CABLE_EDGE_OFFSET_MIN_MM,
+  CABLE_SPACING_MAX_MM,
+  CABLE_SPACING_MIN_MM,
+  MAX_CABLES,
+  PIT_INSET_MM,
+  MAX_ORDER_DIMENSION_MM,
+  MIN_ORDER_DIMENSION_MM,
+} from '../domain/constants';
 import {
   carpetLengthHint,
   carpetLengthLabel,
@@ -10,6 +19,7 @@ import {
   isNarrowWidthDiscountEligible,
   NARROW_WIDTH_DISCOUNT_THRESHOLD_MM,
 } from '../domain/pricing';
+import type { CableLayout, CableLayoutMode } from '../domain/cableLayout';
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
 import { ModulePreviewThumb } from './ModulePreviewThumb';
 import { NumericMmField } from './NumericMmField';
@@ -19,10 +29,19 @@ import { SectionHeader } from './ui/SectionHeader';
 
 type Props = {
   config: ProductConfig;
+  cableLayout: CableLayout | null;
   selectedStrip?: Strip;
   onDimension: (
     key: 'orderWidthMm' | 'orderLengthMm' | 'defaultStripWidthMm' | 'cableEdgeOffsetMm' | 'dimensionSource',
     value: number | DimensionSource,
+  ) => void;
+  onCableLayout: (
+    partial: Partial<
+      Pick<
+        ProductConfig,
+        'cableLayoutMode' | 'manualCableCount' | 'manualCableSpacingMm' | 'cableEdgeOffsetMm'
+      >
+    >,
   ) => void;
   onFitToOrderSize: (value: boolean) => void;
   onNarrowWidthDiscount: (value: boolean) => void;
@@ -33,8 +52,10 @@ type Props = {
 
 export const PropertiesPanel = ({
   config,
+  cableLayout,
   selectedStrip,
   onDimension,
+  onCableLayout,
   onFitToOrderSize,
   onNarrowWidthDiscount,
   onClientName,
@@ -44,6 +65,16 @@ export const PropertiesPanel = ({
   const selectedIndex = selectedStrip ? config.strips.findIndex((strip) => strip.id === selectedStrip.id) : -1;
   const isEdgeStrip = selectedIndex === 0 || selectedIndex === config.strips.length - 1;
   const narrowWidthDiscountEligible = isNarrowWidthDiscountEligible(config.totalLengthMm);
+  const isManualCableLayout = config.cableLayoutMode === 'manual';
+  const manualCableCount = config.manualCableCount ?? cableLayout?.count ?? 2;
+  const manualCableSpacingMm = config.manualCableSpacingMm ?? cableLayout?.spacingsMm[0] ?? CABLE_SPACING_MIN_MM;
+  const manualEdgeOffsetMm = config.cableEdgeOffsetMm ?? CABLE_EDGE_OFFSET_MIN_MM;
+  const manualSpanMm =
+    config.totalLengthMm > 0 ? config.totalLengthMm - 2 * manualEdgeOffsetMm : 0;
+  const manualLayoutFits =
+    manualCableCount <= 1
+      ? manualEdgeOffsetMm * 2 === config.totalLengthMm
+      : manualSpanMm === (manualCableCount - 1) * manualCableSpacingMm;
 
   return (
     <Panel className="properties-panel">
@@ -102,6 +133,78 @@ export const PropertiesPanel = ({
           />
           <span>Подогнать под размер заказчика</span>
         </label>
+      </AccordionSection>
+
+      <AccordionSection title="Тросы" defaultOpen={false}>
+        <label className="ui-field-label" htmlFor="cable-layout-mode">
+          Режим раскладки
+        </label>
+        <select
+          id="cable-layout-mode"
+          className="ui-select"
+          value={config.cableLayoutMode ?? 'auto'}
+          onChange={(event) =>
+            onCableLayout({ cableLayoutMode: event.target.value as CableLayoutMode })
+          }
+        >
+          <option value="auto">Автоматически</option>
+          <option value="manual">Вручную</option>
+        </select>
+
+        {!isManualCableLayout && cableLayout && (
+          <p className="field-hint">
+            {cableLayout.count} тросов, шаг {cableLayout.spacingsMm.join(', ') || '—'} мм, отступ{' '}
+            {cableLayout.edgeOffsetMm} мм.
+          </p>
+        )}
+
+        {isManualCableLayout && (
+          <>
+            <label className="ui-field-label" htmlFor="manual-cable-count">
+              Количество тросов
+            </label>
+            <NumericMmField
+              variant="mm"
+              value={manualCableCount}
+              min={1}
+              max={MAX_CABLES}
+              fractionDigits={0}
+              onCommit={(value) => onCableLayout({ manualCableCount: value })}
+            />
+
+            <label className="ui-field-label" htmlFor="manual-cable-spacing">
+              Шаг между тросами
+            </label>
+            <NumericMmField
+              variant="mm"
+              value={manualCableSpacingMm}
+              min={CABLE_SPACING_MIN_MM}
+              max={CABLE_SPACING_MAX_MM}
+              fractionDigits={0}
+              onCommit={(value) => onCableLayout({ manualCableSpacingMm: value })}
+            />
+
+            <label className="ui-field-label" htmlFor="manual-cable-offset">
+              Отступ от края
+            </label>
+            <NumericMmField
+              variant="mm"
+              value={manualEdgeOffsetMm}
+              min={CABLE_EDGE_OFFSET_MIN_MM}
+              max={CABLE_EDGE_OFFSET_MAX_MM}
+              fractionDigits={0}
+              onCommit={(value) => onCableLayout({ cableEdgeOffsetMm: value })}
+            />
+
+            {!manualLayoutFits && (
+              <p className="field-hint field-hint--warning">
+                2×{manualEdgeOffsetMm} + ({manualCableCount}−1)×{manualCableSpacingMm} ≠{' '}
+                {Math.round(config.totalLengthMm)} мм — подберите значения так, чтобы раскладка сходилась
+                с длиной ковра.
+              </p>
+            )}
+          </>
+        )}
       </AccordionSection>
 
       <div className="properties-section-gap">

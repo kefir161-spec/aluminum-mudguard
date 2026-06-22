@@ -1,4 +1,4 @@
-import type { CableLayout } from './cableLayout';
+import type { CableLayout, CableLayoutMode } from './cableLayout';
 import type { CompressionAllowance } from './compression';
 import type { FitAction } from './gapFit';
 
@@ -42,6 +42,11 @@ export type ProductConfig = {
   layoutPattern?: ModuleType[];
   /** После автозаполнения — пересчитывать раскладку при смене ширины ковра. */
   autoFillEnabled?: boolean;
+  cableLayoutMode?: CableLayoutMode;
+  /** Ручной режим: число тросов вдоль длины ковра. */
+  manualCableCount?: number;
+  /** Ручной режим: шаг между тросами, мм. */
+  manualCableSpacingMm?: number;
   cableEdgeOffsetMm?: number;
   /** Подогнать полотно под заказной габарит натяжением тросов (зазоры между планками). */
   fitToOrderSize?: boolean;

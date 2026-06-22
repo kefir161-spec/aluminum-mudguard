@@ -1,4 +1,4 @@
-import { computeCableLayout } from './cableLayout';
+import { resolveCableLayout } from './cableLayout';
 import { moduleTypeOrder } from './moduleDefinitions';
 import { computeGapTotal, countBushings, countPlugs } from './layoutRules';
 import { getCompressionAllowance, isWithinCompressionAllowance } from './compression';
@@ -27,7 +27,12 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
   const totalLayoutWidthMm = resolved.nominalWidthMm;
   const effectiveLayoutWidthMm = resolved.effectiveWidthMm;
   const totalAreaM2 = (effectiveLayoutWidthMm * config.totalLengthMm) / MM2_TO_M2;
-  const cableLayout = computeCableLayout(config.totalLengthMm);
+  const cableLayout = resolveCableLayout(config.totalLengthMm, {
+    mode: config.cableLayoutMode ?? 'auto',
+    manualCount: config.manualCableCount,
+    manualSpacingMm: config.manualCableSpacingMm,
+    edgeOffsetMm: config.cableEdgeOffsetMm,
+  });
 
   const byType = moduleTypeOrder.map((type): CalculationResult['byType'][number] => {
     const strips = config.strips.filter((strip) => strip.type === type);

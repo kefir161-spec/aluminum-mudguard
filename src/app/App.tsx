@@ -48,6 +48,7 @@ function AppContent() {
     clearAllStrips,
     setFitToOrderSize,
     setNarrowWidthDiscountEnabled,
+    setCableLayout,
     newProject,
     saveCurrentProject,
     loadProject,
@@ -144,8 +145,10 @@ function AppContent() {
   const propertiesPanel = (
     <PropertiesPanel
       config={config}
+      cableLayout={calculation.cableLayout}
       selectedStrip={selectedStrip}
       onDimension={handleDimension}
+      onCableLayout={setCableLayout}
       onFitToOrderSize={setFitToOrderSize}
       onNarrowWidthDiscount={setNarrowWidthDiscountEnabled}
       onClientName={(value) => setProjectMeta('clientName', value)}
