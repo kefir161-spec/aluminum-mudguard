@@ -31,7 +31,6 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     mode: config.cableLayoutMode ?? 'auto',
     manualCount: config.manualCableCount,
     manualSpacingMm: config.manualCableSpacingMm,
-    edgeOffsetMm: config.cableEdgeOffsetMm,
   });
 
   const byType = moduleTypeOrder.map((type): CalculationResult['byType'][number] => {

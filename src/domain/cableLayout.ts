@@ -20,7 +20,12 @@ export type CableLayoutOptions = {
   mode?: CableLayoutMode;
   manualCount?: number;
   manualSpacingMm?: number;
-  edgeOffsetMm?: number;
+};
+
+export type ManualCableOption = {
+  count: number;
+  spacingMm: number;
+  edgeOffsetMm: number;
 };
 
 /** Чем меньше — тем «красивее» число для чертежа. */
@@ -123,27 +128,115 @@ export const computeCableLayout = (lengthMm: number): CableLayout | null => {
   return bestLayout;
 };
 
-/** Ручная раскладка: симметричные отступы, равномерный шаг между тросами. */
+/** Все допустимые ручные комбинации для длины ковра. */
+export const listManualCableOptions = (lengthMm: number): ManualCableOption[] => {
+  if (lengthMm <= 0) return [];
+
+  const options: ManualCableOption[] = [];
+
+  for (let count = 1; count <= MAX_CABLES; count += 1) {
+    if (count === 1) {
+      const offset = lengthMm / 2;
+      if (
+        Number.isInteger(offset) &&
+        offset >= CABLE_EDGE_OFFSET_MIN_MM &&
+        offset <= CABLE_EDGE_OFFSET_MAX_MM
+      ) {
+        options.push({ count, spacingMm: 0, edgeOffsetMm: offset });
+      }
+      continue;
+    }
+
+    for (let spacing = CABLE_SPACING_MIN_MM; spacing <= CABLE_SPACING_MAX_MM; spacing += 1) {
+      const span = (count - 1) * spacing;
+      const remainder = lengthMm - span;
+      if (remainder % 2 !== 0) continue;
+
+      const offset = remainder / 2;
+      if (offset < CABLE_EDGE_OFFSET_MIN_MM || offset > CABLE_EDGE_OFFSET_MAX_MM) continue;
+
+      options.push({ count, spacingMm: spacing, edgeOffsetMm: offset });
+    }
+  }
+
+  return options;
+};
+
+export const getValidManualCounts = (lengthMm: number): number[] =>
+  [...new Set(listManualCableOptions(lengthMm).map((option) => option.count))].sort((a, b) => a - b);
+
+export const getValidSpacingsForManualCount = (lengthMm: number, count: number): number[] =>
+  listManualCableOptions(lengthMm)
+    .filter((option) => option.count === count)
+    .map((option) => option.spacingMm)
+    .sort((a, b) => b - a);
+
+/** Лучший шаг для выбранного числа тросов (предпочтение «красивым» и более крупным значениям). */
+export const pickBestManualSpacing = (
+  lengthMm: number,
+  count: number,
+  preferredSpacing?: number,
+): number | null => {
+  const spacings = getValidSpacingsForManualCount(lengthMm, count);
+  if (spacings.length === 0) return null;
+  if (preferredSpacing !== undefined && spacings.includes(preferredSpacing)) {
+    return preferredSpacing;
+  }
+
+  return spacings.reduce((best, spacing) => {
+    const bestScore = spacingNiceness(best);
+    const score = spacingNiceness(spacing);
+    if (score < bestScore) return spacing;
+    if (score === bestScore && spacing > best) return spacing;
+    return best;
+  });
+};
+
+/** Ручная раскладка: отступ от края вычисляется из длины, числа тросов и шага. */
 export const buildManualCableLayout = (
   lengthMm: number,
   count: number,
   spacingMm: number,
-  edgeOffsetMm: number,
 ): CableLayout | null => {
   if (lengthMm <= 0 || count < 1 || count > MAX_CABLES) return null;
-  if (edgeOffsetMm < CABLE_EDGE_OFFSET_MIN_MM || edgeOffsetMm > CABLE_EDGE_OFFSET_MAX_MM) return null;
+
+  const match = listManualCableOptions(lengthMm).find(
+    (option) => option.count === count && option.spacingMm === spacingMm,
+  );
+  if (!match) return null;
 
   if (count === 1) {
-    if (edgeOffsetMm !== lengthMm - edgeOffsetMm) return null;
-    return { positionsMm: [edgeOffsetMm], spacingsMm: [], edgeOffsetMm, count: 1 };
+    return { positionsMm: [match.edgeOffsetMm], spacingsMm: [], edgeOffsetMm: match.edgeOffsetMm, count: 1 };
   }
 
-  if (!isValidSpacing(spacingMm)) return null;
+  return buildLayoutFromSpacings(
+    match.edgeOffsetMm,
+    Array.from({ length: count - 1 }, () => spacingMm),
+  );
+};
 
-  const span = lengthMm - 2 * edgeOffsetMm;
-  if (span !== (count - 1) * spacingMm) return null;
+/** Синхронизирует ручные настройки с допустимыми значениями для текущей длины. */
+export const syncManualCableSettings = (
+  lengthMm: number,
+  count?: number,
+  spacingMm?: number,
+): { manualCableCount: number; manualCableSpacingMm: number } | null => {
+  const validCounts = getValidManualCounts(lengthMm);
+  if (validCounts.length === 0) return null;
 
-  return buildLayoutFromSpacings(edgeOffsetMm, Array.from({ length: count - 1 }, () => spacingMm));
+  const resolvedCount = pickClosestValidCount(validCounts, count);
+  const resolvedSpacing = pickBestManualSpacing(lengthMm, resolvedCount, spacingMm);
+  if (resolvedSpacing === null) return null;
+
+  return { manualCableCount: resolvedCount, manualCableSpacingMm: resolvedSpacing };
+};
+
+const pickClosestValidCount = (validCounts: number[], preferred?: number): number => {
+  if (preferred === undefined) return validCounts[0];
+  if (validCounts.includes(preferred)) return preferred;
+  return validCounts.reduce((best, count) =>
+    Math.abs(count - preferred) < Math.abs(best - preferred) ? count : best,
+  );
 };
 
 /** Авто или ручная раскладка тросов в зависимости от настроек проекта. */
@@ -154,9 +247,8 @@ export const resolveCableLayout = (lengthMm: number, options: CableLayoutOptions
 
   const count = options.manualCount;
   const spacingMm = options.manualSpacingMm;
-  const edgeOffsetMm = options.edgeOffsetMm ?? CABLE_EDGE_OFFSET_DEFAULT_MM;
 
   if (count === undefined || spacingMm === undefined) return null;
 
-  return buildManualCableLayout(lengthMm, count, spacingMm, edgeOffsetMm);
+  return buildManualCableLayout(lengthMm, count, spacingMm);
 };

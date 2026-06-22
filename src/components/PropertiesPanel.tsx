@@ -1,10 +1,5 @@
 import { moduleTypeOrder, moduleDefinitions } from '../domain/moduleDefinitions';
 import {
-  CABLE_EDGE_OFFSET_MAX_MM,
-  CABLE_EDGE_OFFSET_MIN_MM,
-  CABLE_SPACING_MAX_MM,
-  CABLE_SPACING_MIN_MM,
-  MAX_CABLES,
   PIT_INSET_MM,
   MAX_ORDER_DIMENSION_MM,
   MIN_ORDER_DIMENSION_MM,
@@ -20,6 +15,7 @@ import {
   NARROW_WIDTH_DISCOUNT_THRESHOLD_MM,
 } from '../domain/pricing';
 import type { CableLayout, CableLayoutMode } from '../domain/cableLayout';
+import { getValidManualCounts, getValidSpacingsForManualCount } from '../domain/cableLayout';
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
 import { ModulePreviewThumb } from './ModulePreviewThumb';
 import { NumericMmField } from './NumericMmField';
@@ -36,12 +32,7 @@ type Props = {
     value: number | DimensionSource,
   ) => void;
   onCableLayout: (
-    partial: Partial<
-      Pick<
-        ProductConfig,
-        'cableLayoutMode' | 'manualCableCount' | 'manualCableSpacingMm' | 'cableEdgeOffsetMm'
-      >
-    >,
+    partial: Partial<Pick<ProductConfig, 'cableLayoutMode' | 'manualCableCount' | 'manualCableSpacingMm'>>,
   ) => void;
   onFitToOrderSize: (value: boolean) => void;
   onNarrowWidthDiscount: (value: boolean) => void;
@@ -66,15 +57,11 @@ export const PropertiesPanel = ({
   const isEdgeStrip = selectedIndex === 0 || selectedIndex === config.strips.length - 1;
   const narrowWidthDiscountEligible = isNarrowWidthDiscountEligible(config.totalLengthMm);
   const isManualCableLayout = config.cableLayoutMode === 'manual';
-  const manualCableCount = config.manualCableCount ?? cableLayout?.count ?? 2;
-  const manualCableSpacingMm = config.manualCableSpacingMm ?? cableLayout?.spacingsMm[0] ?? CABLE_SPACING_MIN_MM;
-  const manualEdgeOffsetMm = config.cableEdgeOffsetMm ?? CABLE_EDGE_OFFSET_MIN_MM;
-  const manualSpanMm =
-    config.totalLengthMm > 0 ? config.totalLengthMm - 2 * manualEdgeOffsetMm : 0;
-  const manualLayoutFits =
-    manualCableCount <= 1
-      ? manualEdgeOffsetMm * 2 === config.totalLengthMm
-      : manualSpanMm === (manualCableCount - 1) * manualCableSpacingMm;
+  const validManualCounts = getValidManualCounts(config.totalLengthMm);
+  const manualCableCount = config.manualCableCount ?? validManualCounts[0] ?? 2;
+  const validManualSpacings = getValidSpacingsForManualCount(config.totalLengthMm, manualCableCount);
+  const manualCableSpacingMm =
+    config.manualCableSpacingMm ?? validManualSpacings[0] ?? cableLayout?.spacingsMm[0] ?? 300;
 
   return (
     <Panel className="properties-panel">
@@ -160,48 +147,58 @@ export const PropertiesPanel = ({
 
         {isManualCableLayout && (
           <>
-            <label className="ui-field-label" htmlFor="manual-cable-count">
-              Количество тросов
-            </label>
-            <NumericMmField
-              variant="mm"
-              value={manualCableCount}
-              min={1}
-              max={MAX_CABLES}
-              fractionDigits={0}
-              onCommit={(value) => onCableLayout({ manualCableCount: value })}
-            />
-
-            <label className="ui-field-label" htmlFor="manual-cable-spacing">
-              Шаг между тросами
-            </label>
-            <NumericMmField
-              variant="mm"
-              value={manualCableSpacingMm}
-              min={CABLE_SPACING_MIN_MM}
-              max={CABLE_SPACING_MAX_MM}
-              fractionDigits={0}
-              onCommit={(value) => onCableLayout({ manualCableSpacingMm: value })}
-            />
-
-            <label className="ui-field-label" htmlFor="manual-cable-offset">
-              Отступ от края
-            </label>
-            <NumericMmField
-              variant="mm"
-              value={manualEdgeOffsetMm}
-              min={CABLE_EDGE_OFFSET_MIN_MM}
-              max={CABLE_EDGE_OFFSET_MAX_MM}
-              fractionDigits={0}
-              onCommit={(value) => onCableLayout({ cableEdgeOffsetMm: value })}
-            />
-
-            {!manualLayoutFits && (
+            {validManualCounts.length === 0 ? (
               <p className="field-hint field-hint--warning">
-                2×{manualEdgeOffsetMm} + ({manualCableCount}−1)×{manualCableSpacingMm} ≠{' '}
-                {Math.round(config.totalLengthMm)} мм — подберите значения так, чтобы раскладка сходилась
-                с длиной ковра.
+                Для длины {Math.round(config.totalLengthMm)} мм нет допустимых вариантов раскладки тросов.
               </p>
+            ) : (
+              <>
+                <label className="ui-field-label" htmlFor="manual-cable-count">
+                  Количество тросов
+                </label>
+                <select
+                  id="manual-cable-count"
+                  className="ui-select"
+                  value={manualCableCount}
+                  onChange={(event) =>
+                    onCableLayout({ manualCableCount: Number(event.target.value) })
+                  }
+                >
+                  {validManualCounts.map((count) => (
+                    <option key={count} value={count}>
+                      {count} шт.
+                    </option>
+                  ))}
+                </select>
+
+                {validManualSpacings.length > 0 && (
+                  <>
+                    <label className="ui-field-label" htmlFor="manual-cable-spacing">
+                      Шаг между тросами
+                    </label>
+                    <select
+                      id="manual-cable-spacing"
+                      className="ui-select"
+                      value={manualCableSpacingMm}
+                      onChange={(event) =>
+                        onCableLayout({ manualCableSpacingMm: Number(event.target.value) })
+                      }
+                    >
+                      {validManualSpacings.map((spacing) => (
+                        <option key={spacing} value={spacing}>
+                          {spacing} мм
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+
+                {cableLayout && (
+                  <p className="field-hint">
+                    Отступ от края: {cableLayout.edgeOffsetMm} мм (рассчитывается автоматически).
+                  </p>
+                )}
+              </>
             )}
           </>
         )}

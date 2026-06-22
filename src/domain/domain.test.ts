@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MODULE_GAP_MM, PLANK_WIDTH_MM, SCRAPER_WIDTH_MM } from './constants';
-import { computeCableLayout, buildManualCableLayout, resolveCableLayout } from './cableLayout';
+import { computeCableLayout, buildManualCableLayout, resolveCableLayout, getValidSpacingsForManualCount, syncManualCableSettings } from './cableLayout';
 import {
   computeLayoutWidth,
   countPlugs,
@@ -153,7 +153,7 @@ describe('cableLayout', () => {
   });
 
   it('manual layout for 2000 mm with 6 cables at 360 mm', () => {
-    const layout = buildManualCableLayout(2000, 6, 360, 100);
+    const layout = buildManualCableLayout(2000, 6, 360);
     expect(layout).toEqual({
       positionsMm: [100, 460, 820, 1180, 1540, 1900],
       spacingsMm: [360, 360, 360, 360, 360],
@@ -162,12 +162,24 @@ describe('cableLayout', () => {
     });
   });
 
+  it('for 1500 mm only 400 mm spacing fits 4 cables', () => {
+    expect(getValidSpacingsForManualCount(1500, 4)).toEqual([400]);
+    const layout = buildManualCableLayout(1500, 4, 400);
+    expect(layout?.edgeOffsetMm).toBe(150);
+  });
+
+  it('syncManualCableSettings picks nearest valid count and spacing', () => {
+    expect(syncManualCableSettings(1500, 4, 300)).toEqual({
+      manualCableCount: 4,
+      manualCableSpacingMm: 400,
+    });
+  });
+
   it('resolveCableLayout uses manual settings when mode is manual', () => {
     const layout = resolveCableLayout(2000, {
       mode: 'manual',
       manualCount: 6,
       manualSpacingMm: 360,
-      edgeOffsetMm: 100,
     });
     expect(layout?.count).toBe(6);
     expect(layout?.spacingsMm).toEqual([360, 360, 360, 360, 360]);

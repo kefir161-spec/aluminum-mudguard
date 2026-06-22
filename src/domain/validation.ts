@@ -56,7 +56,7 @@ export const validateConfigWithCalculation = (
   if (calculation.cableLayout === null && config.totalLengthMm > 2 * CABLE_EDGE_OFFSET_MIN_MM) {
     if (config.cableLayoutMode === 'manual') {
       warnings.push(
-        `Ручная раскладка тросов не сходится: 2×отступ + (N−1)×шаг должно равняться длине ковра (${Math.round(config.totalLengthMm)} мм). Отступ ${CABLE_EDGE_OFFSET_MIN_MM}–${CABLE_EDGE_OFFSET_MAX_MM} мм, шаг ${CABLE_SPACING_MIN_MM}–${CABLE_SPACING_MAX_MM} мм.`,
+        `Для длины ${Math.round(config.totalLengthMm)} мм нет допустимой ручной раскладки тросов (отступ ${CABLE_EDGE_OFFSET_MIN_MM}–${CABLE_EDGE_OFFSET_MAX_MM} мм, шаг ${CABLE_SPACING_MIN_MM}–${CABLE_SPACING_MAX_MM} мм).`,
       );
     } else {
       warnings.push(

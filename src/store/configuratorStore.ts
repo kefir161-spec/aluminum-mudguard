@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { computeCableLayout } from '../domain/cableLayout';
-import { CABLE_EDGE_OFFSET_DEFAULT_MM, CABLE_SPACING_MIN_MM } from '../domain/constants';
+import { computeCableLayout, syncManualCableSettings } from '../domain/cableLayout';
+import { CABLE_EDGE_OFFSET_DEFAULT_MM } from '../domain/constants';
 import {
   getOrderTargetDimensions,
   resolveCarpetDimensions,
@@ -171,7 +171,20 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
       const synced = syncOrderDimensions(next);
       const widthChanged =
         partial.orderWidthMm !== undefined || partial.dimensionSource !== undefined;
-      const refilled = widthChanged ? applyPatternToWidth(synced) : synced;
+      const lengthChanged =
+        partial.orderLengthMm !== undefined || partial.dimensionSource !== undefined;
+      let refilled = widthChanged ? applyPatternToWidth(synced) : synced;
+
+      if (lengthChanged && refilled.cableLayoutMode === 'manual') {
+        const cableSync = syncManualCableSettings(
+          refilled.totalLengthMm,
+          refilled.manualCableCount,
+          refilled.manualCableSpacingMm,
+        );
+        if (cableSync) {
+          refilled = { ...refilled, ...cableSync };
+        }
+      }
 
       return {
         config: withUpdatedAt(refilled),
@@ -346,7 +359,7 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
     set((state) => {
       const switchingToManual =
         partial.cableLayoutMode === 'manual' && state.config.cableLayoutMode !== 'manual';
-      const autoLayout = switchingToManual ? computeCableLayout(state.config.totalLengthMm) : null;
+      const length = state.config.totalLengthMm;
 
       const next: ProductConfig = {
         ...state.config,
@@ -354,20 +367,31 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
         cableLayoutMode: partial.cableLayoutMode ?? state.config.cableLayoutMode ?? 'auto',
       };
 
-      if (switchingToManual && autoLayout) {
-        next.manualCableCount = autoLayout.count;
-        next.manualCableSpacingMm = autoLayout.spacingsMm[0] ?? CABLE_SPACING_MIN_MM;
-        next.cableEdgeOffsetMm = autoLayout.edgeOffsetMm;
-      }
-
-      if (partial.manualCableCount !== undefined) {
-        next.manualCableCount = clampCableCount(partial.manualCableCount);
-      }
-      if (partial.manualCableSpacingMm !== undefined) {
-        next.manualCableSpacingMm = clampCableSpacing(partial.manualCableSpacingMm);
-      }
-      if (partial.cableEdgeOffsetMm !== undefined) {
-        next.cableEdgeOffsetMm = clampCableEdgeOffset(partial.cableEdgeOffsetMm);
+      if (switchingToManual) {
+        const autoLayout = computeCableLayout(length);
+        const synced = syncManualCableSettings(
+          length,
+          autoLayout?.count,
+          autoLayout?.spacingsMm[0],
+        );
+        if (synced) {
+          next.manualCableCount = synced.manualCableCount;
+          next.manualCableSpacingMm = synced.manualCableSpacingMm;
+        }
+      } else if (next.cableLayoutMode === 'manual') {
+        const synced = syncManualCableSettings(
+          length,
+          partial.manualCableCount !== undefined
+            ? clampCableCount(partial.manualCableCount)
+            : next.manualCableCount,
+          partial.manualCableSpacingMm !== undefined
+            ? clampCableSpacing(partial.manualCableSpacingMm)
+            : next.manualCableSpacingMm,
+        );
+        if (synced) {
+          next.manualCableCount = synced.manualCableCount;
+          next.manualCableSpacingMm = synced.manualCableSpacingMm;
+        }
       }
 
       return { config: withUpdatedAt(next) };
