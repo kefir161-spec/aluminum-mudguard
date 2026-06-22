@@ -1212,9 +1212,17 @@ body {
 
 /* Responsive: 768–1023 */
 @media (max-width: 1023px) {
+  .app-root {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
   .app-workspace {
     grid-template-columns: 1fr;
-    padding-bottom: calc(var(--mobile-bottom-nav-height) + 80px + env(safe-area-inset-bottom, 0px));
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
   }
 
   .app-save-status {
@@ -1227,24 +1235,46 @@ body {
   }
 
   .center-panel {
-    min-height: 50dvh;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .canvas-area {
-    min-height: 45dvh;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .canvas-area:not(.canvas-area--drawing) {
+    overflow: hidden;
+  }
+
+  .drawing-sheet-svg {
+    min-height: 0;
+  }
+
+  .constructor-view-root,
+  .constructor-view,
+  .drawing-desk {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .drawing-desk {
+    align-self: stretch;
   }
 
   .mobile-bottom-bar {
     display: flex;
+    position: static;
+    flex-shrink: 0;
+    z-index: auto;
   }
 
   .mobile-sticky-summary {
     display: block;
-    position: fixed;
-    bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-    left: 0;
-    right: 0;
-    z-index: 190;
+    position: static;
+    flex-shrink: 0;
+    z-index: auto;
     padding: var(--space-2) var(--space-3);
     background: var(--surface);
     border-top: 1px solid var(--border);

@@ -258,6 +258,16 @@ function AppContent() {
         </aside>
       </div>
 
+      <div className="mobile-sticky-summary">
+        <CalculationSummary
+          calculation={calculation}
+          compact
+          showStatusBadge={!warnings[0]}
+          footerNote={warnings[0]}
+          onExpandDetails={() => setMobileSheet('calc')}
+        />
+      </div>
+
       <div className="mobile-bottom-bar" role="navigation" aria-label="Мобильная навигация">
         <button
           type="button"
@@ -283,16 +293,6 @@ function AppContent() {
           <Calculator size={20} aria-hidden />
           <span>Итог</span>
         </button>
-      </div>
-
-      <div className="mobile-sticky-summary">
-        <CalculationSummary
-          calculation={calculation}
-          compact
-          showStatusBadge={!warnings[0]}
-          footerNote={warnings[0]}
-          onExpandDetails={() => setMobileSheet('calc')}
-        />
       </div>
 
       <Drawer open={isProjectsDrawerOpen} onClose={() => setIsProjectsDrawerOpen(false)} title="Проекты" side="right">
