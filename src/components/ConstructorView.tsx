@@ -3,6 +3,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { ProductConfig } from '../domain/types';
 import { useConstructorFullscreen } from '../hooks/useConstructorFullscreen';
 import { useElementSize } from '../hooks/useElementSize';
+import { useStripKeyboardNavigation } from '../hooks/useStripKeyboardNavigation';
 import { TopViewRenderer } from '../renderers/TopViewRenderer';
 import { IconButton } from './ui/IconButton';
 
@@ -43,6 +44,12 @@ export const ConstructorView = ({ config, selectedStripId, onStripClick, onStrip
   });
 
   const { ref: canvasRef, size: canvasSize } = useElementSize<HTMLDivElement>(true, isFullscreen);
+
+  useStripKeyboardNavigation({
+    strips: config.strips,
+    selectedStripId,
+    onSelect: onStripClick,
+  });
 
   useLayoutEffect(() => {
     if (phase === 'entering') return;
