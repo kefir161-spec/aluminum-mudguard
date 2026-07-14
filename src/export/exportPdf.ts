@@ -1,14 +1,7 @@
 import { jsPDF } from 'jspdf';
-import { captureNodePngDataUrl } from './captureNodeImage';
 import { describeUnknownError } from './exportErrors';
-import type { ExportImageOptions } from './exportPng';
 
-export const exportNodeToPdf = async (
-  node: HTMLElement,
-  fileName: string,
-  options: ExportImageOptions = {},
-): Promise<void> => {
-  const dataUrl = await captureNodePngDataUrl(node, options);
+export const savePdfFromPngDataUrl = (dataUrl: string, fileName: string): void => {
   if (!dataUrl.startsWith('data:image/png')) {
     throw new Error('Не удалось сформировать PNG для PDF.');
   }
@@ -21,9 +14,8 @@ export const exportNodeToPdf = async (
 
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 0;
-  const maxWidth = pageWidth - margin * 2;
-  const maxHeight = pageHeight - margin * 2;
+  const maxWidth = pageWidth;
+  const maxHeight = pageHeight;
 
   let imgProps: { width: number; height: number };
   try {

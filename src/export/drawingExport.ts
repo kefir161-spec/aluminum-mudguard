@@ -1,8 +1,9 @@
 import { syncFitLineBadges } from '../renderers/fitLineBadge';
 import { SHEET_HEIGHT_PX, SHEET_WIDTH_PX } from '../domain/eskd';
+import { captureDrawingSheetPngDataUrl } from './captureDrawingSheet';
 import { ensureExportImagesReady, prepareNodeImagesForExport } from './profileImageCache';
-import { exportNodeToPdf } from './exportPdf';
-import { exportNodeToPng } from './exportPng';
+import { savePdfFromPngDataUrl } from './exportPdf';
+import { savePngFromDataUrl } from './exportPng';
 
 export const DRAWING_EXPORT_WIDTH = SHEET_WIDTH_PX;
 export const DRAWING_EXPORT_HEIGHT = SHEET_HEIGHT_PX;
@@ -35,11 +36,14 @@ const exportFromNode = async (
   syncFitLineBadges(node);
   await prepareNodeImagesForExport(node);
   await waitForPaint();
+
   const options = { width: DRAWING_EXPORT_WIDTH, height: DRAWING_EXPORT_HEIGHT, pixelRatio: 2 };
+  const dataUrl = await captureDrawingSheetPngDataUrl(node, options);
+
   if (format === 'pdf') {
-    await exportNodeToPdf(node, fileName, options);
+    savePdfFromPngDataUrl(dataUrl, fileName);
   } else {
-    await exportNodeToPng(node, fileName, options);
+    savePngFromDataUrl(dataUrl, fileName);
   }
 };
 

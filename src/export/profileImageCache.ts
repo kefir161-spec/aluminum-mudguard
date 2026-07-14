@@ -45,7 +45,7 @@ const prefetchExportImages = async (): Promise<void> => {
   await Promise.all(urls.map((url) => cacheImageDataUrl(url)));
 };
 
-/** Предзагружает текстуры профилей один раз — html-to-image пропускает уже data: URL. */
+/** Предзагружает текстуры профилей один раз перед экспортом. */
 export const ensureExportImagesReady = (): Promise<void> => {
   if (!prefetchPromise) {
     prefetchPromise = prefetchExportImages().catch((error) => {
@@ -59,7 +59,7 @@ export const ensureExportImagesReady = (): Promise<void> => {
 export const getExportImageHref = (url: string): string =>
   imageDataUrlCache.get(normalizeAssetKey(url)) ?? url;
 
-/** Подменяет все SVG image на data: URL перед html-to-image. */
+/** Подменяет все SVG image на data: URL перед захватом чертежа. */
 export const prepareNodeImagesForExport = async (root: ParentNode): Promise<void> => {
   const images = [...root.querySelectorAll('image')];
 
