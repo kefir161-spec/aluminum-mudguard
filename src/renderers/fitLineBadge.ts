@@ -3,8 +3,13 @@ export const FIT_LINE_PAD_Y = 8;
 export const FIT_LINE_BOX_H = 36;
 const FIT_LINE_WIDTH_EXTRA = 6;
 
-export const measureFitLineBadgeWidth = (textEl: SVGTextElement): number =>
-  Math.ceil(textEl.getBBox().width) + FIT_LINE_PAD_X * 2 + FIT_LINE_WIDTH_EXTRA;
+export const measureFitLineBadgeWidth = (textEl: SVGTextElement): number => {
+  try {
+    return Math.ceil(textEl.getBBox().width) + FIT_LINE_PAD_X * 2 + FIT_LINE_WIDTH_EXTRA;
+  } catch {
+    return 120;
+  }
+};
 
 /** Подгоняет ширину рамки под фактическую ширину текста (для экрана и экспорта). */
 export const syncFitLineBadges = (root: ParentNode): void => {

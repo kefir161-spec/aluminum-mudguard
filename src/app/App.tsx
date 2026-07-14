@@ -1,6 +1,6 @@
 import './App.css';
 import '../components/ui/ui.css';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calculator, Layers3, Settings2 } from 'lucide-react';
 import { AppModal } from '../components/AppModal';
 import { CalculationPanel, CalculationSummary } from '../components/CalculationPanel';
@@ -62,6 +62,7 @@ function AppContent() {
   const selectedStrip = config.strips.find((strip) => strip.id === selectedStripId);
 
   const [isExporting, setIsExporting] = useState(false);
+  const exportInFlightRef = useRef(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; tone?: 'success' | 'error' }>();
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('Новый проект');
@@ -121,6 +122,8 @@ function AppContent() {
   };
 
   const runExport = async (format: 'pdf' | 'png') => {
+    if (exportInFlightRef.current) return;
+    exportInFlightRef.current = true;
     setIsExporting(true);
     setStatusMessage(undefined);
     try {
@@ -138,6 +141,7 @@ function AppContent() {
       setStatusMessage({ text: message, tone: 'error' });
       showToast(message, 'error');
     } finally {
+      exportInFlightRef.current = false;
       setIsExporting(false);
     }
   };

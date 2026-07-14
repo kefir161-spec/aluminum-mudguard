@@ -20,26 +20,35 @@ const blobToDataURL = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
-/** Предзагружает текстуры профилей один раз — html-to-image пропускает уже data: URL. */
-export const ensureExportImagesReady = (): Promise<void> => {
-  if (prefetchPromise) return prefetchPromise;
+const prefetchExportImages = async (): Promise<void> => {
+  const urls = moduleTypeOrder
+    .map((type) => profileTextureConfig[type].moduleSrc)
+    .filter((url): url is string => Boolean(url));
 
-  prefetchPromise = (async () => {
-    const urls = moduleTypeOrder
-      .map((type) => profileTextureConfig[type].moduleSrc)
-      .filter((url): url is string => Boolean(url));
-
-    await Promise.all(
-      urls.map(async (url) => {
-        const key = normalizeAssetKey(url);
-        if (imageDataUrlCache.has(key)) return;
+  await Promise.all(
+    urls.map(async (url) => {
+      const key = normalizeAssetKey(url);
+      if (imageDataUrlCache.has(key)) return;
+      try {
         const response = await fetch(url);
+        if (!response.ok) return;
         const dataUrl = await blobToDataURL(await response.blob());
         imageDataUrlCache.set(key, dataUrl);
-      }),
-    );
-  })();
+      } catch {
+        // Оставляем исходный same-origin URL — экспорт попробует без data: подмены.
+      }
+    }),
+  );
+};
 
+/** Предзагружает текстуры профилей один раз — html-to-image пропускает уже data: URL. */
+export const ensureExportImagesReady = (): Promise<void> => {
+  if (!prefetchPromise) {
+    prefetchPromise = prefetchExportImages().catch((error) => {
+      prefetchPromise = null;
+      throw error;
+    });
+  }
   return prefetchPromise;
 };
 
