@@ -1,4 +1,4 @@
-import { toPng } from 'html-to-image';
+import { captureNodePngDataUrl } from './captureNodeImage';
 
 export type ExportImageOptions = {
   width?: number;
@@ -12,17 +12,7 @@ export const exportNodeToPng = async (
   fileName: string,
   options: ExportImageOptions = {},
 ): Promise<void> => {
-  const dataUrl = await toPng(node, {
-    cacheBust: false,
-    skipFonts: options.skipFonts ?? true,
-    pixelRatio: options.pixelRatio ?? 2,
-    backgroundColor: '#ffffff',
-    width: options.width,
-    height: options.height,
-    style: {
-      transform: 'none',
-    },
-  });
+  const dataUrl = await captureNodePngDataUrl(node, options);
 
   const link = document.createElement('a');
   link.href = dataUrl;

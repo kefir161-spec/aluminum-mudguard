@@ -1,32 +1,14 @@
 import { jsPDF } from 'jspdf';
-import { toPng } from 'html-to-image';
+import { captureNodePngDataUrl } from './captureNodeImage';
+import { describeUnknownError } from './exportErrors';
 import type { ExportImageOptions } from './exportPng';
-
-const capturePngDataUrl = async (node: HTMLElement, options: ExportImageOptions): Promise<string> => {
-  try {
-    return await toPng(node, {
-      cacheBust: false,
-      skipFonts: options.skipFonts ?? true,
-      pixelRatio: options.pixelRatio ?? 2,
-      backgroundColor: '#ffffff',
-      width: options.width,
-      height: options.height,
-      style: {
-        transform: 'none',
-      },
-    });
-  } catch (error) {
-    const details = error instanceof Error ? error.message : String(error);
-    throw new Error(`Не удалось сформировать изображение чертежа: ${details}`, { cause: error });
-  }
-};
 
 export const exportNodeToPdf = async (
   node: HTMLElement,
   fileName: string,
   options: ExportImageOptions = {},
 ): Promise<void> => {
-  const dataUrl = await capturePngDataUrl(node, options);
+  const dataUrl = await captureNodePngDataUrl(node, options);
   if (!dataUrl.startsWith('data:image/png')) {
     throw new Error('Не удалось сформировать PNG для PDF.');
   }
@@ -47,8 +29,7 @@ export const exportNodeToPdf = async (
   try {
     imgProps = pdf.getImageProperties(dataUrl);
   } catch (error) {
-    const details = error instanceof Error ? error.message : String(error);
-    throw new Error(`Не удалось прочитать изображение для PDF: ${details}`, { cause: error });
+    throw new Error(`Не удалось прочитать изображение для PDF: ${describeUnknownError(error)}`, { cause: error });
   }
 
   const ratio = Math.min(maxWidth / imgProps.width, maxHeight / imgProps.height);
@@ -61,7 +42,6 @@ export const exportNodeToPdf = async (
     pdf.addImage(dataUrl, 'PNG', offsetX, offsetY, imgWidth, imgHeight);
     pdf.save(fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`);
   } catch (error) {
-    const details = error instanceof Error ? error.message : String(error);
-    throw new Error(`Не удалось сохранить PDF: ${details}`, { cause: error });
+    throw new Error(`Не удалось сохранить PDF: ${describeUnknownError(error)}`, { cause: error });
   }
 };

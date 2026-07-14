@@ -1,6 +1,6 @@
 import { syncFitLineBadges } from '../renderers/fitLineBadge';
 import { SHEET_HEIGHT_PX, SHEET_WIDTH_PX } from '../domain/eskd';
-import { ensureExportImagesReady, patchExportImageHrefs, preloadPatchedImages } from './profileImageCache';
+import { ensureExportImagesReady, prepareNodeImagesForExport } from './profileImageCache';
 import { exportNodeToPdf } from './exportPdf';
 import { exportNodeToPng } from './exportPng';
 
@@ -33,8 +33,7 @@ const exportFromNode = async (
   await document.fonts.ready;
   await waitForPaint();
   syncFitLineBadges(node);
-  patchExportImageHrefs(node);
-  await preloadPatchedImages(node);
+  await prepareNodeImagesForExport(node);
   await waitForPaint();
   const options = { width: DRAWING_EXPORT_WIDTH, height: DRAWING_EXPORT_HEIGHT, pixelRatio: 2 };
   if (format === 'pdf') {
