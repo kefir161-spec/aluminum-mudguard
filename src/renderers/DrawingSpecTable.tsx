@@ -67,6 +67,13 @@ export const DrawingSpecTable = ({ x, y, calculation, cableCount }: Props) => {
   const col1Max = COL1_W - CELL_PAD * 2;
   const col2Max = COL2_W - CELL_PAD * 2;
 
+  const fitColon = fitLine?.indexOf(': ') ?? -1;
+  const fitLine1 = fitLine && fitColon >= 0 ? fitLine.slice(0, fitColon + 1) : fitLine;
+  const fitLine2 = fitLine && fitColon >= 0 ? fitLine.slice(fitColon + 2) : undefined;
+  const fitMax = tableW - mm(1);
+  const fitFont = 12;
+  const fitY = y + tableH + mm(4.5);
+
   return (
     <g className="sheet-spec-table">
       <rect x={x} y={y} width={tableW} height={tableH} fill="#fff" stroke="#000" strokeWidth={LINE_THICK_PX} />
@@ -112,10 +119,27 @@ export const DrawingSpecTable = ({ x, y, calculation, cableCount }: Props) => {
         );
       })}
 
-      {fitLine && (
-        <text x={x} y={y + tableH + mm(5.5)} className="eskd-text sheet-spec-fit-line" style={{ fontSize: 13 }}>
-          {fitLine}
-        </text>
+      {fitLine1 && (
+        <g className="sheet-spec-fit">
+          <FitText
+            x={x}
+            y={fitY}
+            text={fitLine1}
+            size={fitFont}
+            maxWidth={fitMax}
+            className="eskd-text sheet-spec-fit-line"
+          />
+          {fitLine2 && (
+            <FitText
+              x={x}
+              y={fitY + mm(4.5)}
+              text={fitLine2}
+              size={fitFont}
+              maxWidth={fitMax}
+              className="eskd-text sheet-spec-fit-line"
+            />
+          )}
+        </g>
       )}
     </g>
   );
