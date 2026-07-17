@@ -51,9 +51,10 @@ export const LegendLeaderLines = ({ matRight, anchors, labelX }: Props) => (
         <circle cx={matRight} cy={anchor.y} r={mm(0.6)} fill="#000" />
         <text
           x={labelX}
-          y={anchor.y + mm(1.2)}
+          y={anchor.y}
+          dominantBaseline="middle"
           className="eskd-text"
-          style={{ fontSize: 11 }}
+          style={{ fontSize: 15 }}
         >
           {anchor.label}
         </text>

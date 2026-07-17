@@ -11,34 +11,53 @@ type Props = {
   width?: number;
 };
 
-const LINE_HEIGHT_MM = 5;
+const LINE_HEIGHT_MM = 6;
+const FONT_SIZE = 14;
 
 /** Запрашиваемый и расчётный размер ковра (как на эталонном чертеже). */
 export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => {
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
   const requested = formatMatSizePair(config.orderWidthMm, config.orderLengthMm);
   const calculated = formatMatSizePair(calculatedWidthMm, config.totalLengthMm);
+  const maxWidth = width != null ? width - mm(2) : undefined;
 
   return (
     <g className="sheet-size-info">
-      <text
-        x={x}
-        y={y}
-        className="eskd-text sheet-size-info__line"
-        style={{ fontSize: 11 }}
-        textAnchor={width ? 'end' : 'start'}
-      >
-        Запрашиваемый размер ковра {requested}
-      </text>
-      <text
+      <SizeLine x={x} y={y} text={`Запрашиваемый размер ковра ${requested}`} maxWidth={maxWidth} />
+      <SizeLine
         x={x}
         y={y + mm(LINE_HEIGHT_MM)}
-        className="eskd-text sheet-size-info__line"
-        style={{ fontSize: 11 }}
-        textAnchor={width ? 'end' : 'start'}
-      >
-        Расчетный размер ковра {calculated}
-      </text>
+        text={`Расчетный размер ковра ${calculated}`}
+        maxWidth={maxWidth}
+      />
     </g>
+  );
+};
+
+const SizeLine = ({
+  x,
+  y,
+  text,
+  maxWidth,
+}: {
+  x: number;
+  y: number;
+  text: string;
+  maxWidth?: number;
+}) => {
+  const estimated = text.length * FONT_SIZE * 0.55;
+  const needsFit = maxWidth != null && estimated > maxWidth;
+
+  return (
+    <text
+      x={x}
+      y={y}
+      className="eskd-text sheet-size-info__line"
+      style={{ fontSize: FONT_SIZE }}
+      textAnchor={maxWidth != null ? 'end' : 'start'}
+      {...(needsFit ? { textLength: maxWidth, lengthAdjust: 'spacingAndGlyphs' as const } : {})}
+    >
+      {text}
+    </text>
   );
 };

@@ -27,7 +27,7 @@ const ARROW_HALF = mm(0.85);
 /** Выход выносной линии за размерную по ГОСТ 2.307 (1…5 мм). */
 const EXT_OVERSHOOT = mm(1.5);
 /** Зазор размерного числа над размерной линией (~1 мм). */
-const LABEL_GAP = mm(1);
+const LABEL_GAP = mm(1.5);
 
 const dimLine = (x1: number, y1: number, x2: number, y2: number, key: string) => (
   <line key={key} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#000" strokeWidth={LINE_THIN_PX} />

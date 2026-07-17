@@ -72,8 +72,9 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
   const designation = deriveDesignation(config);
   const productName = deriveProductName(config);
   const matRight = matLayout.matX + matLayout.matWidthPx;
-  const legendLabelX = matRight + mm(5);
-  const widthDimX = Math.min(layout.rightColX - mm(10), legendLabelX + mm(36));
+  /** Размер сразу справа от полотна; подписи выносок — правее размерной линии. */
+  const widthDimX = matRight + mm(8);
+  const legendLabelX = widthDimX + mm(7);
 
   return (
     <div

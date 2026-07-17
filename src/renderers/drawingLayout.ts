@@ -27,8 +27,9 @@ type LayoutInput = {
 const TITLE_BLOCK_W_MM = 185;
 const TITLE_BLOCK_H_MM = 55;
 const RIGHT_COL_W_MM = 74;
-const LEGEND_ZONE_W_MM = 38;
-const WIDTH_DIM_W_MM = 14;
+/** Зона выносок + размерной линии справа от полотна. */
+export const LEGEND_ZONE_W_MM = 48;
+export const WIDTH_DIM_W_MM = 16;
 const CABLE_ZONE_H_MM = 14;
 const LENGTH_DIM_ZONE_H_MM = 12;
 
@@ -48,11 +49,12 @@ export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLa
   const approvalX = rightColX;
   const approvalY = frame.top + mm(3);
 
-  const sizeInfoX = rightColX + rightColW;
+  /** С отступом от рамки, чтобы курсивное «мм» не пересекало линию. */
+  const sizeInfoX = frame.right - mm(2.5);
   const sizeInfoY = approvalY + mm(APPROVAL_BLOCK_HEIGHT_MM) + mm(4);
 
   const specX = rightColX;
-  const specY = sizeInfoY + mm(14);
+  const specY = sizeInfoY + mm(16);
 
   const mainTop = frame.top + mm(2);
   const mainBottom = titleBlockY - mm(2);

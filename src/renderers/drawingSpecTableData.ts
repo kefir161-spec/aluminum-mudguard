@@ -7,7 +7,7 @@ type SpecRow = {
 
 const PLANK_ORDER: ModuleType[] = ['rubber', 'brush', 'pile', 'scraper'];
 
-const plankLabel = (shortName: string): string => `Планка "${shortName}", стандарт.`;
+const plankLabel = (shortName: string): string => `Планка "${shortName}"`;
 
 export const buildSpecRows = (calculation: CalculationResult, cableCount: number): SpecRow[] => {
   const rows: SpecRow[] = [];

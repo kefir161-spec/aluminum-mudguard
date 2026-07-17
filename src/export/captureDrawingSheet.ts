@@ -8,7 +8,7 @@ const DRAWING_SHEET_STYLES = `
     font-style: italic;
     fill: #000;
   }
-  .dim-label { font-size: 15px; font-weight: 400; }
+  .dim-label { font-size: 18px; font-weight: 400; }
 `;
 
 const normalizeClipPathRefs = (root: ParentNode): void => {

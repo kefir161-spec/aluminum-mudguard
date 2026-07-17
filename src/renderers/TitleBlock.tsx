@@ -14,12 +14,15 @@ type Props = {
   sheetsTotal?: number;
 };
 
-/** Размеры подобраны под высоту граф штампа (5 / 15 / 25 мм), без выхода за рамки. */
-const FONT_LABEL = 7;
-const FONT_VALUE = 10;
-const FONT_NAME = 11;
-const FONT_DESIGNATION = 14;
-const FONT_ORG = 11;
+/** Максимум в пределах граф: 5 мм ≈ 15 px, с запасом ~1 px до линии. */
+const FONT_LABEL = 9;
+const FONT_VALUE = 11;
+const FONT_NAME = 13;
+const FONT_DESIGNATION = 16;
+const FONT_ORG = 13;
+
+/** Оценка ширины курсивного ГОСТ-шрифта (узкий). */
+const estimateTextWidth = (text: string, size: number): number => text.length * size * 0.55;
 
 type LineSeg = { x1: number; y1: number; x2: number; y2: number };
 
@@ -34,20 +37,28 @@ type CellTextProps = {
   size: number;
   anchor?: 'start' | 'middle';
   px?: number;
+  /** Если текст шире — слегка сжимается, не выходя за рамку. */
+  maxWidth?: number;
 };
 
-const CellText = ({ cx, cy, text, size, anchor = 'middle', px = 0 }: CellTextProps) => (
-  <text
-    x={anchor === 'middle' ? cx : cx + px}
-    y={cy}
-    textAnchor={anchor}
-    dominantBaseline="middle"
-    className="eskd-text eskd-title-text"
-    style={{ fontSize: size }}
-  >
-    {text}
-  </text>
-);
+const CellText = ({ cx, cy, text, size, anchor = 'middle', px = 0, maxWidth }: CellTextProps) => {
+  const x = anchor === 'middle' ? cx : cx + px;
+  const needsFit = maxWidth != null && estimateTextWidth(text, size) > maxWidth;
+
+  return (
+    <text
+      x={x}
+      y={cy}
+      textAnchor={anchor}
+      dominantBaseline="middle"
+      className="eskd-text eskd-title-text"
+      style={{ fontSize: size }}
+      {...(needsFit ? { textLength: maxWidth, lengthAdjust: 'spacingAndGlyphs' as const } : {})}
+    >
+      {text}
+    </text>
+  );
+};
 
 /** Основная надпись (форма 1) по ГОСТ 2.104. */
 export const TitleBlock = ({
@@ -108,11 +119,11 @@ export const TitleBlock = ({
       <VLine x1={lx(160)} y1={ly(30)} x2={lx(160)} y2={ly(40)} />
 
       {/* Графа изменений — заголовок */}
-      <CellText cx={lx(3.5)} cy={ly(2.5)} text="Изм." size={FONT_LABEL} />
-      <CellText cx={lx(12)} cy={ly(2.5)} text="Лист" size={FONT_LABEL} />
-      <CellText cx={lx(28.5)} cy={ly(2.5)} text="№ докум." size={FONT_LABEL} />
-      <CellText cx={lx(47.5)} cy={ly(2.5)} text="Подп." size={FONT_LABEL} />
-      <CellText cx={lx(60)} cy={ly(2.5)} text="Дата" size={FONT_LABEL} />
+      <CellText cx={lx(3.5)} cy={ly(2.5)} text="Изм." size={FONT_LABEL} maxWidth={mm(6)} />
+      <CellText cx={lx(12)} cy={ly(2.5)} text="Лист" size={FONT_LABEL} maxWidth={mm(9)} />
+      <CellText cx={lx(28.5)} cy={ly(2.5)} text="№ докум." size={FONT_LABEL} maxWidth={mm(21)} />
+      <CellText cx={lx(47.5)} cy={ly(2.5)} text="Подп." size={FONT_LABEL} maxWidth={mm(13)} />
+      <CellText cx={lx(60)} cy={ly(2.5)} text="Дата" size={FONT_LABEL} maxWidth={mm(9)} />
 
       {/* Графы исполнителей */}
       {roles.map((role, index) => {
@@ -125,32 +136,33 @@ export const TitleBlock = ({
             text={role}
             size={FONT_LABEL}
             anchor="start"
+            maxWidth={mm(15)}
           />
         );
       })}
-      <CellText cx={lx(18)} cy={ly(32.5)} text={developer} size={FONT_VALUE} anchor="start" px={1} />
+      <CellText cx={lx(18)} cy={ly(32.5)} text={developer} size={FONT_VALUE} anchor="start" px={1} maxWidth={mm(20)} />
 
       {/* Обозначение документа (графа 2) */}
-      <CellText cx={lx(125)} cy={ly(7.5)} text={designation} size={FONT_DESIGNATION} />
+      <CellText cx={lx(125)} cy={ly(7.5)} text={designation} size={FONT_DESIGNATION} maxWidth={mm(114)} />
 
       {/* Наименование изделия и документа (графа 1): две строки внутри 15–40 мм */}
-      <CellText cx={lx(100)} cy={ly(23)} text={productName} size={FONT_NAME} />
-      <CellText cx={lx(100)} cy={ly(32)} text={documentTitle} size={FONT_VALUE} />
+      <CellText cx={lx(100)} cy={ly(23)} text={productName} size={FONT_NAME} maxWidth={mm(66)} />
+      <CellText cx={lx(100)} cy={ly(32)} text={documentTitle} size={FONT_VALUE} maxWidth={mm(66)} />
 
       {/* Лит. / Масса / Масштаб */}
       <CellText cx={lx(142.5)} cy={ly(17.5)} text="Лит." size={FONT_LABEL} />
       <CellText cx={lx(158.5)} cy={ly(17.5)} text="Масса" size={FONT_LABEL} />
-      <CellText cx={lx(176)} cy={ly(17.5)} text="Масштаб" size={FONT_LABEL} />
+      <CellText cx={lx(176)} cy={ly(17.5)} text="Масштаб" size={FONT_LABEL} maxWidth={mm(16)} />
       <CellText cx={lx(176)} cy={ly(25)} text={scaleLabel} size={FONT_VALUE} />
 
       {/* Лист / Листов */}
       <CellText cx={lx(147.5)} cy={ly(32.5)} text="Лист" size={FONT_LABEL} />
-      <CellText cx={lx(172.5)} cy={ly(32.5)} text="Листов" size={FONT_LABEL} />
+      <CellText cx={lx(172.5)} cy={ly(32.5)} text="Листов" size={FONT_LABEL} maxWidth={mm(22)} />
       <CellText cx={lx(147.5)} cy={ly(37.5)} text={String(sheet)} size={FONT_VALUE} />
       <CellText cx={lx(172.5)} cy={ly(37.5)} text={String(sheetsTotal)} size={FONT_VALUE} />
 
       {/* Наименование организации (графа 9) */}
-      <CellText cx={lx(125)} cy={ly(47.5)} text={orgName} size={FONT_ORG} />
+      <CellText cx={lx(125)} cy={ly(47.5)} text={orgName} size={FONT_ORG} maxWidth={mm(114)} />
     </g>
   );
 };
