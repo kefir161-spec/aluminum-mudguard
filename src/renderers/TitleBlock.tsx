@@ -14,10 +14,11 @@ type Props = {
   sheetsTotal?: number;
 };
 
-const FONT_LABEL = 6;
-const FONT_VALUE = 9;
-const FONT_NAME = 12;
-const FONT_DESIGNATION = 15;
+/** Размеры подобраны под высоту граф штампа (5 / 15 / 25 мм), без выхода за рамки. */
+const FONT_LABEL = 7;
+const FONT_VALUE = 10;
+const FONT_NAME = 11;
+const FONT_DESIGNATION = 14;
 const FONT_ORG = 11;
 
 type LineSeg = { x1: number; y1: number; x2: number; y2: number };
@@ -38,8 +39,9 @@ type CellTextProps = {
 const CellText = ({ cx, cy, text, size, anchor = 'middle', px = 0 }: CellTextProps) => (
   <text
     x={anchor === 'middle' ? cx : cx + px}
-    y={cy + size * 0.35}
+    y={cy}
     textAnchor={anchor}
+    dominantBaseline="middle"
     className="eskd-text eskd-title-text"
     style={{ fontSize: size }}
   >
@@ -131,9 +133,9 @@ export const TitleBlock = ({
       {/* Обозначение документа (графа 2) */}
       <CellText cx={lx(125)} cy={ly(7.5)} text={designation} size={FONT_DESIGNATION} />
 
-      {/* Наименование изделия и документа (графа 1) */}
-      <CellText cx={lx(100)} cy={ly(24)} text={productName} size={FONT_NAME} />
-      <CellText cx={lx(100)} cy={ly(34)} text={documentTitle} size={FONT_VALUE} />
+      {/* Наименование изделия и документа (графа 1): две строки внутри 15–40 мм */}
+      <CellText cx={lx(100)} cy={ly(23)} text={productName} size={FONT_NAME} />
+      <CellText cx={lx(100)} cy={ly(32)} text={documentTitle} size={FONT_VALUE} />
 
       {/* Лит. / Масса / Масштаб */}
       <CellText cx={lx(142.5)} cy={ly(17.5)} text="Лит." size={FONT_LABEL} />

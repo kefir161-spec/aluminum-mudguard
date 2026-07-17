@@ -25,7 +25,7 @@ export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => 
         x={x}
         y={y}
         className="eskd-text sheet-size-info__line"
-        style={{ fontSize: 9 }}
+        style={{ fontSize: 11 }}
         textAnchor={width ? 'end' : 'start'}
       >
         Запрашиваемый размер ковра {requested}
@@ -34,7 +34,7 @@ export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => 
         x={x}
         y={y + mm(LINE_HEIGHT_MM)}
         className="eskd-text sheet-size-info__line"
-        style={{ fontSize: 9 }}
+        style={{ fontSize: 11 }}
         textAnchor={width ? 'end' : 'start'}
       >
         Расчетный размер ковра {calculated}

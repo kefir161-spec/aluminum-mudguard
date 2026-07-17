@@ -53,7 +53,7 @@ export const LegendLeaderLines = ({ matRight, anchors, labelX }: Props) => (
           x={labelX}
           y={anchor.y + mm(1.2)}
           className="eskd-text"
-          style={{ fontSize: 9 }}
+          style={{ fontSize: 11 }}
         >
           {anchor.label}
         </text>

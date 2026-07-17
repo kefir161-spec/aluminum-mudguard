@@ -22,15 +22,15 @@ const ApprovalDateLine = ({ x, y, width, year }: { x: number; y: number; width: 
 
   return (
     <g className="approval-block__date">
-      <text x={x} y={y} className="eskd-text approval-block__date-text" style={{ fontSize: 9 }}>
+      <text x={x} y={y} className="eskd-text approval-block__date-text" style={{ fontSize: 10 }}>
         "
       </text>
       <line x1={x + mm(2.5)} y1={baseline} x2={dayLineEnd} y2={baseline} stroke="#000" strokeWidth={LINE_THIN_PX} />
-      <text x={dayLineEnd + mm(1)} y={y} className="eskd-text approval-block__date-text" style={{ fontSize: 9 }}>
+      <text x={dayLineEnd + mm(1)} y={y} className="eskd-text approval-block__date-text" style={{ fontSize: 10 }}>
         "
       </text>
       <line x1={monthLineStart} y1={baseline} x2={monthLineEnd} y2={baseline} stroke="#000" strokeWidth={LINE_THIN_PX} />
-      <text x={monthLineEnd + mm(1)} y={y} className="eskd-text approval-block__date-text" style={{ fontSize: 9 }}>
+      <text x={monthLineEnd + mm(1)} y={y} className="eskd-text approval-block__date-text" style={{ fontSize: 10 }}>
         " {yearLabel}
       </text>
       <line
@@ -51,7 +51,7 @@ export const ApprovalBlock = ({ x, y, width = mm(70), year = new Date().getFullY
 
   return (
     <g className="approval-block">
-      <text x={x} y={y + mm(5)} className="eskd-text approval-block__title" style={{ fontSize: 10 }}>
+      <text x={x} y={y + mm(5)} className="eskd-text approval-block__title" style={{ fontSize: 11 }}>
         Согласовано:
       </text>
       {Array.from({ length: SIGNATURE_LINE_COUNT }, (_, index) => {
