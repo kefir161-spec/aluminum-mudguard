@@ -631,24 +631,8 @@ body {
   gap: var(--space-2);
 }
 
-.calc-summary__metrics > :first-child {
+.calc-summary__status {
   grid-column: 1 / -1;
-}
-
-.calc-summary--compact .calc-summary__metrics {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.calc-summary--compact .calc-summary__metrics > :first-child {
-  grid-column: 1 / -1;
-}
-
-.calc-summary__metrics--no-status {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.calc-summary__metrics--no-status > :first-child {
-  grid-column: auto;
 }
 
 .calc-panel__footer-note {
@@ -765,6 +749,20 @@ body {
 .spec-summary-label {
   text-align: right;
   font-weight: 600;
+}
+
+/* Разделитель между колонками «Стандарт» и «Усиленная». */
+.data-table .spec-group {
+  border-left: 1px solid var(--border);
+}
+
+.data-table--spec thead th {
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.data-table--spec thead th[colspan] {
+  text-align: center;
 }
 
 .spec-summary-row--total td {
@@ -1356,10 +1354,6 @@ body {
 
   .dimension-fields {
     grid-template-columns: 1fr;
-  }
-
-  .calc-summary__metrics {
-    grid-template-columns: 1fr 1fr;
   }
 }
 

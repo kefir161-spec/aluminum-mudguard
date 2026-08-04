@@ -8,6 +8,12 @@ export type TextureType = 'ribbed' | 'fiber' | 'bristles' | 'metal';
 
 export type DimensionSource = 'carpet' | 'pit';
 
+/** Исполнение алюминиевого профиля: определяет цену по прайсу. */
+export type ProfileGrade = 'standard' | 'reinforced';
+
+/** Величина в рублях, посчитанная для каждого исполнения профиля. */
+export type GradedPrice = Record<ProfileGrade, number>;
+
 export type ModuleDefinition = {
   id: ModuleType;
   name: string;
@@ -15,8 +21,6 @@ export type ModuleDefinition = {
   description: string;
   defaultColor: string;
   textureType: TextureType;
-  pricePerM2: number;
-  pricePerLinearMeter?: number;
 };
 
 export type Strip = {
@@ -66,7 +70,7 @@ export type LayoutPreset = {
 
 export type PricingConfig = {
   mode: 'per_m2' | 'per_linear_meter';
-  modulePricesPerM2: Record<ModuleType, number>;
+  modulePricesPerM2: Record<ProfileGrade, Record<ModuleType, number>>;
   modulePricesPerLinearMeter: Record<ModuleType, number>;
 };
 
@@ -76,17 +80,17 @@ export type CalculationByType = {
   totalWidthMm: number;
   areaM2: number;
   percentage: number;
-  unitPrice: number;
-  price: number;
+  unitPrice: GradedPrice;
+  price: GradedPrice;
 };
 
 export type CalculationResult = {
   totalAreaM2: number;
-  subtotalPrice: number;
+  subtotalPrice: GradedPrice;
   narrowWidthDiscountApplied: boolean;
   narrowWidthDiscountPercent: number;
-  narrowWidthDiscountAmount: number;
-  totalPrice: number;
+  narrowWidthDiscountAmount: GradedPrice;
+  totalPrice: GradedPrice;
   totalStripWidthMm: number;
   totalLayoutWidthMm: number;
   totalGapMm: number;

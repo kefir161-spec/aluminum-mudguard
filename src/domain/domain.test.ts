@@ -13,7 +13,8 @@ import {
 } from './layoutRules';
 import { resolveLayoutDimensions } from './gapFit';
 import { calculateConfig } from './calculations';
-import type { ProductConfig, Strip } from './types';
+import { getModuleUnitPrice, pricingConfig } from './pricing';
+import type { ModuleType, ProductConfig, ProfileGrade, Strip } from './types';
 
 const makeConfig = (partial: Partial<ProductConfig> = {}): ProductConfig => ({
   id: 'test',
@@ -36,6 +37,8 @@ const strip = (type: Strip['type'], widthMm = getStripNominalWidth(type)): Strip
   type,
   widthMm,
 });
+
+const grades: ProfileGrade[] = ['standard', 'reinforced'];
 
 describe('layoutRules', () => {
   it('computes layout width with gaps between strips', () => {
@@ -213,8 +216,10 @@ describe('calculations', () => {
     const result = calculateConfig(config);
     expect(result.narrowWidthDiscountApplied).toBe(true);
     expect(result.narrowWidthDiscountPercent).toBe(10);
-    expect(result.narrowWidthDiscountAmount).toBeCloseTo(result.subtotalPrice * 0.1);
-    expect(result.totalPrice).toBeCloseTo(result.subtotalPrice * 0.9);
+    for (const grade of grades) {
+      expect(result.narrowWidthDiscountAmount[grade]).toBeCloseTo(result.subtotalPrice[grade] * 0.1);
+      expect(result.totalPrice[grade]).toBeCloseTo(result.subtotalPrice[grade] * 0.9);
+    }
   });
 
   it('does not apply narrow-width discount when option is disabled', () => {
@@ -226,7 +231,7 @@ describe('calculations', () => {
     });
     const result = calculateConfig(config);
     expect(result.narrowWidthDiscountApplied).toBe(false);
-    expect(result.totalPrice).toBe(result.subtotalPrice);
+    expect(result.totalPrice).toEqual(result.subtotalPrice);
   });
 
   it('does not apply narrow-width discount at 1200 mm and above', () => {
@@ -238,8 +243,85 @@ describe('calculations', () => {
     });
     const result = calculateConfig(config);
     expect(result.narrowWidthDiscountApplied).toBe(false);
-    expect(result.narrowWidthDiscountAmount).toBe(0);
-    expect(result.totalPrice).toBe(result.subtotalPrice);
+    expect(result.narrowWidthDiscountAmount).toEqual({ standard: 0, reinforced: 0 });
+    expect(result.totalPrice).toEqual(result.subtotalPrice);
+  });
+});
+
+describe('pricing (прайс от 01.04.26, розница ₽/м² с НДС)', () => {
+  const retailPrices: Record<ProfileGrade, Record<ModuleType, number>> = {
+    standard: { rubber: 15372, pile: 16470, brush: 29097, scraper: 17019 },
+    reinforced: { rubber: 17400, pile: 18450, brush: 32625, scraper: 17019 },
+  };
+
+  it('matches the price list for both profile grades', () => {
+    expect(pricingConfig.modulePricesPerM2).toEqual(retailPrices);
+  });
+
+  it('resolves unit price by module type and grade', () => {
+    for (const grade of grades) {
+      for (const type of Object.keys(retailPrices[grade]) as ModuleType[]) {
+        expect(getModuleUnitPrice(type, grade)).toBe(retailPrices[grade][type]);
+      }
+    }
+  });
+
+  it('keeps a single scraper price across grades', () => {
+    expect(getModuleUnitPrice('scraper', 'reinforced')).toBe(getModuleUnitPrice('scraper', 'standard'));
+  });
+});
+
+describe('calculations report both profile grades', () => {
+  const result = calculateConfig(
+    makeConfig({ strips: rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000) }),
+  );
+
+  it('exposes unit prices of both grades for every module type', () => {
+    expect(result.byType.find((row) => row.type === 'rubber')?.unitPrice).toEqual({
+      standard: 15372,
+      reinforced: 17400,
+    });
+    expect(result.byType.find((row) => row.type === 'pile')?.unitPrice).toEqual({
+      standard: 16470,
+      reinforced: 18450,
+    });
+  });
+
+  it('prices the same area twice, reinforced above standard', () => {
+    expect(result.totalPrice.reinforced).toBeGreaterThan(result.totalPrice.standard);
+    for (const grade of grades) {
+      const expected = result.byType.reduce((sum, row) => sum + row.areaM2 * row.unitPrice[grade], 0);
+      expect(result.totalPrice[grade]).toBeCloseTo(expected);
+    }
+  });
+
+  it('leaves the layout itself independent of the grade', () => {
+    expect(result.totalAreaM2).toBeGreaterThan(0);
+    expect(result.byType.every((row) => row.price.standard <= row.price.reinforced)).toBe(true);
+  });
+});
+
+describe('drawingLayout', () => {
+  it('insets the right column so its blocks do not touch the frame line', async () => {
+    const { computeSheetLayout } = await import('../renderers/drawingLayout');
+    const { getFrameBounds } = await import('../renderers/DrawingFrame');
+
+    const layout = computeSheetLayout({ hasCableAnnotation: false });
+    const frame = getFrameBounds();
+
+    expect(layout.rightColX).toBeGreaterThan(frame.left);
+    expect(layout.rightColX + layout.rightColW).toBeLessThan(frame.right);
+  });
+
+  it('aligns the size info, approval block and spec table on one right edge', async () => {
+    const { computeSheetLayout } = await import('../renderers/drawingLayout');
+
+    const layout = computeSheetLayout({ hasCableAnnotation: false });
+    const columnRight = layout.rightColX + layout.rightColW;
+
+    expect(layout.approvalX).toBe(layout.rightColX);
+    expect(layout.specX).toBe(layout.rightColX);
+    expect(layout.sizeInfoX).toBe(columnRight);
   });
 });
 

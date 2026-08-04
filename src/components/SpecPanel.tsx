@@ -22,13 +22,23 @@ export const SpecPanel = ({ config, calculation }: Props) => {
         <table className="data-table data-table--spec">
           <thead>
             <tr>
-              <th>№</th>
-              <th>Профиль</th>
-              <th>Планки, шт.</th>
-              <th>Суммарная ширина, мм</th>
-              <th>Длина планки, мм</th>
-              <th>Площадь, м²</th>
-              <th>Цена, ₽/м²</th>
+              <th rowSpan={2}>№</th>
+              <th rowSpan={2}>Профиль</th>
+              <th rowSpan={2}>Планки, шт.</th>
+              <th rowSpan={2}>Суммарная ширина, мм</th>
+              <th rowSpan={2}>Длина планки, мм</th>
+              <th rowSpan={2}>Площадь, м²</th>
+              <th colSpan={2} className="spec-group">
+                Стандарт
+              </th>
+              <th colSpan={2} className="spec-group">
+                Усиленная
+              </th>
+            </tr>
+            <tr>
+              <th className="spec-group">Цена, ₽/м²</th>
+              <th>Стоимость</th>
+              <th className="spec-group">Цена, ₽/м²</th>
               <th>Стоимость</th>
             </tr>
           </thead>
@@ -41,28 +51,44 @@ export const SpecPanel = ({ config, calculation }: Props) => {
                 <td>{formatNumber(row.totalWidthMm, 1)}</td>
                 <td>{formatNumber(config.totalLengthMm, 1)}</td>
                 <td>{formatNumber(row.areaM2, 3)}</td>
-                <td>{formatMoney(row.unitPrice)}</td>
-                <td>{formatMoney(row.price)} ₽</td>
+                <td className="spec-group">{formatMoney(row.unitPrice.standard)}</td>
+                <td>{formatMoney(row.price.standard)} ₽</td>
+                <td className="spec-group">{formatMoney(row.unitPrice.reinforced)}</td>
+                <td>{formatMoney(row.price.reinforced)} ₽</td>
               </tr>
             ))}
             {calculation.narrowWidthDiscountApplied && (
               <tr className="spec-summary-row">
-                <td colSpan={7} className="spec-summary-label">
+                <td colSpan={6} className="spec-summary-label">
                   Скидка −{calculation.narrowWidthDiscountPercent}%
                 </td>
-                <td>−{formatMoney(calculation.narrowWidthDiscountAmount)} ₽</td>
+                <td colSpan={2} className="spec-group">
+                  −{formatMoney(calculation.narrowWidthDiscountAmount.standard)} ₽
+                </td>
+                <td colSpan={2} className="spec-group">
+                  −{formatMoney(calculation.narrowWidthDiscountAmount.reinforced)} ₽
+                </td>
               </tr>
             )}
             <tr className="spec-summary-row spec-summary-row--total">
-              <td colSpan={7} className="spec-summary-label">
+              <td colSpan={6} className="spec-summary-label">
                 Итого
               </td>
-              <td>{formatMoney(calculation.totalPrice)} ₽</td>
+              <td colSpan={2} className="spec-group">
+                {formatMoney(calculation.totalPrice.standard)} ₽
+              </td>
+              <td colSpan={2} className="spec-group">
+                {formatMoney(calculation.totalPrice.reinforced)} ₽
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
       <div className="spec-details">
+        <p>
+          <strong>Цены:</strong> розничные по прайсу от 01.04.26, ₽/м² с НДС, для стандартного и усиленного
+          алюминиевого профиля.
+        </p>
         <p>
           <strong>Комплектующие:</strong> заглушки — {calculation.plugCount} шт.; втулки — {calculation.bushingCount}{' '}
           шт.; тросы — {cableText}.

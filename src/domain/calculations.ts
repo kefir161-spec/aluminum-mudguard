@@ -5,7 +5,7 @@ import { getCompressionAllowance, isWithinCompressionAllowance } from './compres
 import { resolveLayoutDimensions } from './gapFit';
 import { getOrderTargetDimensions } from './pitDimensions';
 import type { CalculationResult, ProductConfig, Strip } from './types';
-import { getNarrowWidthDiscount, pricingConfig } from './pricing';
+import { getModuleUnitPrice, getNarrowWidthDiscount, mapProfileGrades, pricingConfig } from './pricing';
 
 export const MM2_TO_M2 = 1_000_000;
 
@@ -36,14 +36,12 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
   const byType = moduleTypeOrder.map((type): CalculationResult['byType'][number] => {
     const strips = config.strips.filter((strip) => strip.type === type);
     const areaM2 = strips.reduce((sum, strip) => sum + stripAreaM2(strip, config.totalLengthMm), 0);
-    const unitPrice =
+    const unitPrice = mapProfileGrades((grade) => getModuleUnitPrice(type, grade));
+    const price = mapProfileGrades((grade) =>
       pricingConfig.mode === 'per_m2'
-        ? pricingConfig.modulePricesPerM2[type]
-        : pricingConfig.modulePricesPerLinearMeter[type];
-    const price =
-      pricingConfig.mode === 'per_m2'
-        ? areaM2 * unitPrice
-        : strips.reduce((sum, strip) => sum + (strip.widthMm / 1000) * unitPrice, 0);
+        ? areaM2 * unitPrice[grade]
+        : strips.reduce((sum, strip) => sum + (strip.widthMm / 1000) * unitPrice[grade], 0),
+    );
     return {
       type,
       count: strips.length,
@@ -57,7 +55,9 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
 
   const widthDeltaMm = Math.round(effectiveLayoutWidthMm) - Math.round(orderTarget.totalWidthMm);
   const compressionAllowance = getCompressionAllowance(orderTarget.totalWidthMm);
-  const subtotalPrice = byType.reduce((sum, item) => sum + item.price, 0);
+  const subtotalPrice = mapProfileGrades((grade) =>
+    byType.reduce((sum, item) => sum + item.price[grade], 0),
+  );
   const narrowWidthDiscount = getNarrowWidthDiscount(
     config.narrowWidthDiscountEnabled ?? false,
     orderTarget.totalLengthMm,
@@ -70,7 +70,7 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     narrowWidthDiscountApplied: narrowWidthDiscount.applied,
     narrowWidthDiscountPercent: narrowWidthDiscount.percent,
     narrowWidthDiscountAmount: narrowWidthDiscount.amount,
-    totalPrice: subtotalPrice - narrowWidthDiscount.amount,
+    totalPrice: mapProfileGrades((grade) => subtotalPrice[grade] - narrowWidthDiscount.amount[grade]),
     totalStripWidthMm,
     totalLayoutWidthMm,
     totalGapMm,

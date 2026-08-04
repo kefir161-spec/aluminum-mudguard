@@ -15,10 +15,12 @@ const ROW_H = mm(8.5);
 const HEADER_H = mm(9);
 const CELL_PAD = mm(1.2);
 
+/** Ширина таблицы комплектации, мм — задаёт ширину правой колонки листа. */
 export const SPEC_TABLE_WIDTH_MM = 74;
-export const SPEC_TABLE_WIDTH = COL1_W + COL2_W;
 
-export const computeSpecHeight = (rowCount: number): number => HEADER_H + rowCount * ROW_H;
+const SPEC_TABLE_WIDTH = COL1_W + COL2_W;
+
+const computeSpecHeight = (rowCount: number): number => HEADER_H + rowCount * ROW_H;
 
 const FONT_HEAD = 14;
 const FONT_CELL = 14;

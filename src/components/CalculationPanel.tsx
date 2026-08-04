@@ -50,12 +50,17 @@ export const CalculationSummary = ({
   const stripCount = calculation.byType.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <div className={`calc-summary${compact ? ' calc-summary--compact' : ''}`}>
-      <div className={`calc-summary__metrics${showStatusBadge ? '' : ' calc-summary__metrics--no-status'}`}>
-        {showStatusBadge && <StatusBadge tone={status.tone}>{status.label}</StatusBadge>}
+    <div className="calc-summary">
+      <div className="calc-summary__metrics">
+        {showStatusBadge && (
+          <div className="calc-summary__status">
+            <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+          </div>
+        )}
         <MetricCard label="Площадь" value={`${formatNumber(calculation.totalAreaM2, 3)} м²`} />
         <MetricCard label="Полос" value={String(stripCount)} />
-        <MetricCard label="Стоимость" value={`${formatMoney(calculation.totalPrice)} ₽`} />
+        <MetricCard label="Стоимость, стандарт" value={`${formatMoney(calculation.totalPrice.standard)} ₽`} />
+        <MetricCard label="Стоимость, усиленная" value={`${formatMoney(calculation.totalPrice.reinforced)} ₽`} />
       </div>
       {compact && onExpandDetails && (
         <Button variant="ghost" size="sm" onClick={onExpandDetails} className="calc-summary__expand">
@@ -101,9 +106,13 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
             </li>
             {calculation.narrowWidthDiscountApplied && (
               <>
-                <li>Стоимость без скидки: {formatMoney(calculation.subtotalPrice)} ₽</li>
+                <li>
+                  Стоимость без скидки: {formatMoney(calculation.subtotalPrice.standard)} ₽ /{' '}
+                  {formatMoney(calculation.subtotalPrice.reinforced)} ₽
+                </li>
                 <li className="calc-discount">
-                  Скидка за узкую ширину (&lt; 1200 мм): −{formatMoney(calculation.narrowWidthDiscountAmount)} ₽ (
+                  Скидка за узкую ширину (&lt; 1200 мм): −{formatMoney(calculation.narrowWidthDiscountAmount.standard)}{' '}
+                  ₽ / −{formatMoney(calculation.narrowWidthDiscountAmount.reinforced)} ₽ (
                   {calculation.narrowWidthDiscountPercent}%)
                 </li>
               </>
@@ -116,7 +125,8 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                   <th>Тип</th>
                   <th>Кол-во</th>
                   <th>Площадь</th>
-                  <th>Стоимость</th>
+                  <th>Стандарт</th>
+                  <th>Усиленная</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,7 +135,8 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                     <td>{moduleDefinitions[row.type].shortName}</td>
                     <td>{row.count}</td>
                     <td>{formatNumber(row.areaM2, 3)}</td>
-                    <td>{formatMoney(row.price)} ₽</td>
+                    <td>{formatMoney(row.price.standard)} ₽</td>
+                    <td>{formatMoney(row.price.reinforced)} ₽</td>
                   </tr>
                 ))}
               </tbody>

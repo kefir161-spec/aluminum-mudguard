@@ -1,5 +1,4 @@
 import type { ModuleDefinition, ModuleType } from './types';
-import { pricingConfig } from './pricing';
 
 export const moduleDefinitions: Record<ModuleType, ModuleDefinition> = {
   rubber: {
@@ -9,8 +8,6 @@ export const moduleDefinitions: Record<ModuleType, ModuleDefinition> = {
     description: 'Рифленая резиновая вставка для снятия грубой грязи и влаги.',
     defaultColor: '#2f343a',
     textureType: 'ribbed',
-    pricePerM2: pricingConfig.modulePricesPerM2.rubber,
-    pricePerLinearMeter: pricingConfig.modulePricesPerLinearMeter.rubber,
   },
   pile: {
     id: 'pile',
@@ -19,8 +16,6 @@ export const moduleDefinitions: Record<ModuleType, ModuleDefinition> = {
     description: 'Волокнистая вставка для удержания мелкой грязи и пыли.',
     defaultColor: '#505d6d',
     textureType: 'fiber',
-    pricePerM2: pricingConfig.modulePricesPerM2.pile,
-    pricePerLinearMeter: pricingConfig.modulePricesPerLinearMeter.pile,
   },
   brush: {
     id: 'brush',
@@ -29,8 +24,6 @@ export const moduleDefinitions: Record<ModuleType, ModuleDefinition> = {
     description: 'Жесткая щетина для интенсивной очистки подошвы.',
     defaultColor: '#385a66',
     textureType: 'bristles',
-    pricePerM2: pricingConfig.modulePricesPerM2.brush,
-    pricePerLinearMeter: pricingConfig.modulePricesPerLinearMeter.brush,
   },
   scraper: {
     id: 'scraper',
@@ -39,8 +32,6 @@ export const moduleDefinitions: Record<ModuleType, ModuleDefinition> = {
     description: 'Металлический профиль для снятия плотных загрязнений.',
     defaultColor: '#b6c0c9',
     textureType: 'metal',
-    pricePerM2: pricingConfig.modulePricesPerM2.scraper,
-    pricePerLinearMeter: pricingConfig.modulePricesPerLinearMeter.scraper,
   },
 };
 

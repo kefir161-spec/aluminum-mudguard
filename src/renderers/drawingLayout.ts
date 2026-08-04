@@ -1,6 +1,7 @@
 import { mm } from '../domain/eskd';
 import { APPROVAL_BLOCK_HEIGHT_MM } from './ApprovalBlock';
 import { getFrameBounds } from './DrawingFrame';
+import { SPEC_TABLE_WIDTH_MM } from './DrawingSpecTable';
 
 export type SheetLayout = {
   matX: number;
@@ -26,10 +27,11 @@ type LayoutInput = {
 
 const TITLE_BLOCK_W_MM = 185;
 const TITLE_BLOCK_H_MM = 55;
-const RIGHT_COL_W_MM = 74;
+/** Отступ правой колонки от рамки, чтобы её блоки не сливались с линией рамки. */
+const RIGHT_COL_GUTTER_MM = 4;
 /** Зона выносок + размерной линии справа от полотна. */
-export const LEGEND_ZONE_W_MM = 48;
-export const WIDTH_DIM_W_MM = 16;
+const LEGEND_ZONE_W_MM = 48;
+const WIDTH_DIM_W_MM = 16;
 const CABLE_ZONE_H_MM = 14;
 const LENGTH_DIM_ZONE_H_MM = 12;
 
@@ -43,14 +45,14 @@ export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLa
   const titleBlockX = frame.right - mm(TITLE_BLOCK_W_MM);
   const titleBlockY = frame.bottom - mm(TITLE_BLOCK_H_MM);
 
-  const rightColX = frame.right - mm(RIGHT_COL_W_MM);
-  const rightColW = mm(RIGHT_COL_W_MM);
+  const rightColW = mm(SPEC_TABLE_WIDTH_MM);
+  const rightColX = frame.right - mm(RIGHT_COL_GUTTER_MM) - rightColW;
 
   const approvalX = rightColX;
   const approvalY = frame.top + mm(3);
 
-  /** С отступом от рамки, чтобы курсивное «мм» не пересекало линию. */
-  const sizeInfoX = frame.right - mm(2.5);
+  /** Текст выровнен по правому краю колонки — общему для блока согласования и таблицы. */
+  const sizeInfoX = rightColX + rightColW;
   const sizeInfoY = approvalY + mm(APPROVAL_BLOCK_HEIGHT_MM) + mm(4);
 
   const specX = rightColX;
