@@ -20,6 +20,7 @@ export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => 
   const requested = formatMatSizePair(config.orderWidthMm, config.orderLengthMm);
   const calculated = formatMatSizePair(calculatedWidthMm, config.totalLengthMm);
   const maxWidth = width != null ? width - mm(2) : undefined;
+  const carpetCount = calculation.carpetCount || 1;
 
   return (
     <g className="sheet-size-info">
@@ -28,6 +29,12 @@ export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => 
         x={x}
         y={y + mm(LINE_HEIGHT_MM)}
         text={`Расчетный размер ковра ${calculated}`}
+        maxWidth={maxWidth}
+      />
+      <SizeLine
+        x={x}
+        y={y + mm(LINE_HEIGHT_MM * 2)}
+        text={`Кол-во: ${carpetCount} шт.`}
         maxWidth={maxWidth}
       />
     </g>

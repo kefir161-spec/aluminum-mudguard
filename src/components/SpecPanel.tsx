@@ -1,5 +1,6 @@
 import type { CalculationResult, ProductConfig } from '../domain/types';
 import { formatMoney, formatNumber } from '../domain/calculations';
+import { formatCarpetCountSuffix } from '../domain/carpetCount';
 import { moduleDefinitions } from '../domain/moduleDefinitions';
 
 type Props = {
@@ -9,8 +10,11 @@ type Props = {
 
 export const SpecPanel = ({ config, calculation }: Props) => {
   const rows = calculation.byType.filter((row) => row.count > 0);
+  const carpetCount = calculation.carpetCount || 1;
+  const forCarpets = formatCarpetCountSuffix(carpetCount);
+  const cableCount = (calculation.cableLayout?.count ?? 0) * carpetCount;
   const cableText = calculation.cableLayout
-    ? `${calculation.cableLayout.count} шт.${
+    ? `${cableCount} шт.${
         calculation.cableLayout.spacingsMm.length ? `, шаг ${calculation.cableLayout.spacingsMm.join(', ')} мм` : ''
       }`
     : 'не размещены';
@@ -72,7 +76,7 @@ export const SpecPanel = ({ config, calculation }: Props) => {
             )}
             <tr className="spec-summary-row spec-summary-row--total">
               <td colSpan={6} className="spec-summary-label">
-                Итого
+                Итого{forCarpets ? ` ${forCarpets}` : ''}
               </td>
               <td colSpan={2} className="spec-group">
                 {formatMoney(calculation.totalPrice.standard)} ₽
@@ -94,8 +98,14 @@ export const SpecPanel = ({ config, calculation }: Props) => {
           шт.; тросы — {cableText}.
         </p>
         <p>
-          <strong>Итоговая площадь:</strong> {formatNumber(calculation.totalAreaM2, 3)} м².
+          <strong>Итоговая площадь:</strong> {formatNumber(calculation.totalAreaM2, 3)} м²
+          {forCarpets ? ` ${forCarpets}` : ''}.
         </p>
+        {carpetCount > 1 && (
+          <p>
+            <strong>Количество ковров:</strong> {carpetCount} шт.
+          </p>
+        )}
       </div>
     </div>
   );

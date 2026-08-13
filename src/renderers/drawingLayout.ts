@@ -1,5 +1,6 @@
-import { mm } from '../domain/eskd';
+import { mm, TITLE_BLOCK_MM } from '../domain/eskd';
 import { APPROVAL_BLOCK_HEIGHT_MM } from './ApprovalBlock';
+import { COMMENT_GAP_MM } from './drawingCommentLayout';
 import { getFrameBounds } from './DrawingFrame';
 import { SPEC_TABLE_WIDTH_MM } from './DrawingSpecTable';
 
@@ -19,14 +20,16 @@ export type SheetLayout = {
   titleBlockX: number;
   titleBlockY: number;
   lengthDimY: number;
+  commentX: number;
+  commentMaxW: number;
+  commentBottom: number;
+  commentMaxH: number;
 };
 
 type LayoutInput = {
   hasCableAnnotation: boolean;
 };
 
-const TITLE_BLOCK_W_MM = 185;
-const TITLE_BLOCK_H_MM = 55;
 /** Отступ правой колонки от рамки, чтобы её блоки не сливались с линией рамки. */
 const RIGHT_COL_GUTTER_MM = 4;
 /** Зона выносок + размерной линии справа от полотна. */
@@ -42,8 +45,8 @@ const LENGTH_DIM_ZONE_H_MM = 12;
 export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLayout => {
   const frame = getFrameBounds();
 
-  const titleBlockX = frame.right - mm(TITLE_BLOCK_W_MM);
-  const titleBlockY = frame.bottom - mm(TITLE_BLOCK_H_MM);
+  const titleBlockX = frame.right - mm(TITLE_BLOCK_MM.width);
+  const titleBlockY = frame.bottom - mm(TITLE_BLOCK_MM.height);
 
   const rightColW = mm(SPEC_TABLE_WIDTH_MM);
   const rightColX = frame.right - mm(RIGHT_COL_GUTTER_MM) - rightColW;
@@ -56,7 +59,7 @@ export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLa
   const sizeInfoY = approvalY + mm(APPROVAL_BLOCK_HEIGHT_MM) + mm(4);
 
   const specX = rightColX;
-  const specY = sizeInfoY + mm(16);
+  const specY = sizeInfoY + mm(22);
 
   const mainTop = frame.top + mm(2);
   const mainBottom = titleBlockY - mm(2);
@@ -68,6 +71,10 @@ export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLa
   const matH = mainBottom - matY - mm(LENGTH_DIM_ZONE_H_MM);
 
   const lengthDimY = matY + matH + mm(8);
+
+  const commentX = frame.left + mm(COMMENT_GAP_MM);
+  const commentMaxW = titleBlockX - commentX - mm(COMMENT_GAP_MM);
+  const commentBottomGap = mm(COMMENT_GAP_MM);
 
   return {
     matX,
@@ -85,5 +92,9 @@ export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLa
     titleBlockX,
     titleBlockY,
     lengthDimY,
+    commentX,
+    commentMaxW,
+    commentBottom: frame.bottom - commentBottomGap,
+    commentMaxH: mm(TITLE_BLOCK_MM.height) - commentBottomGap,
   };
 };

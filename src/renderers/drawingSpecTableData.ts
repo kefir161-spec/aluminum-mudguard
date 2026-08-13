@@ -10,6 +10,7 @@ const PLANK_ORDER: ModuleType[] = ['rubber', 'brush', 'pile', 'scraper'];
 const plankLabel = (shortName: string): string => `Планка "${shortName}"`;
 
 export const buildSpecRows = (calculation: CalculationResult, cableCount: number): SpecRow[] => {
+  const qty = Math.max(1, calculation.carpetCount);
   const rows: SpecRow[] = [];
 
   for (const type of PLANK_ORDER) {
@@ -22,7 +23,7 @@ export const buildSpecRows = (calculation: CalculationResult, cableCount: number
 
   rows.push({ label: 'Заглушка', count: calculation.plugCount });
   if (cableCount > 0) {
-    rows.push({ label: 'Трос', count: cableCount });
+    rows.push({ label: 'Трос', count: cableCount * qty });
   }
   rows.push({ label: 'Втулка', count: calculation.bushingCount });
 

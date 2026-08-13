@@ -3,7 +3,7 @@ import type { ExportImageOptions } from './exportPng';
 
 const DRAWING_SHEET_STYLES = `
   svg, text { fill: #000; }
-  .eskd-text, .eskd-title-text, .dim-label {
+  .eskd-text, .eskd-title-text, .dim-label, .sheet-comment__title, .sheet-comment__text {
     font-family: 'GOST type B', 'GOST Common', 'ISOCPEUR', 'PT Sans Narrow', 'Arial Narrow', sans-serif;
     font-style: italic;
     fill: #000;

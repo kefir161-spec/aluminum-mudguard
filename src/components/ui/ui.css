@@ -732,10 +732,26 @@
 }
 
 .ui-input:focus,
-.ui-select:focus {
+.ui-select:focus,
+.ui-textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.ui-textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .ui-mm-field {

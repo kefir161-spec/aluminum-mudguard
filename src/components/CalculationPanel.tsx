@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { moduleDefinitions } from '../domain/moduleDefinitions';
 import type { CalculationResult } from '../domain/types';
 import { formatMoney, formatNumber } from '../domain/calculations';
+import { formatCarpetCountSuffix } from '../domain/carpetCount';
 import { Button } from './ui/Button';
 import { MetricCard } from './ui/MetricCard';
 import { Panel } from './ui/Panel';
@@ -48,6 +49,7 @@ export const CalculationSummary = ({
 }: Omit<Props, 'warnings'>) => {
   const status = getFillStatus(calculation);
   const stripCount = calculation.byType.reduce((sum, item) => sum + item.count, 0);
+  const forCarpets = formatCarpetCountSuffix(calculation.carpetCount);
 
   return (
     <div className="calc-summary">
@@ -57,10 +59,20 @@ export const CalculationSummary = ({
             <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           </div>
         )}
-        <MetricCard label="Площадь" value={`${formatNumber(calculation.totalAreaM2, 3)} м²`} />
+        {forCarpets && <MetricCard label="Ковров" value={String(calculation.carpetCount)} />}
+        <MetricCard
+          label={forCarpets ? `Площадь ${forCarpets}` : 'Площадь'}
+          value={`${formatNumber(calculation.totalAreaM2, 3)} м²`}
+        />
         <MetricCard label="Полос" value={String(stripCount)} />
-        <MetricCard label="Стоимость, стандарт" value={`${formatMoney(calculation.totalPrice.standard)} ₽`} />
-        <MetricCard label="Стоимость, усиленная" value={`${formatMoney(calculation.totalPrice.reinforced)} ₽`} />
+        <MetricCard
+          label={forCarpets ? `Стоимость, стандарт ${forCarpets}` : 'Стоимость, стандарт'}
+          value={`${formatMoney(calculation.totalPrice.standard)} ₽`}
+        />
+        <MetricCard
+          label={forCarpets ? `Стоимость, усиленная ${forCarpets}` : 'Стоимость, усиленная'}
+          value={`${formatMoney(calculation.totalPrice.reinforced)} ₽`}
+        />
       </div>
       {compact && onExpandDetails && (
         <Button variant="ghost" size="sm" onClick={onExpandDetails} className="calc-summary__expand">
@@ -96,10 +108,14 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
       {isExpanded && (
         <div className="calc-panel__details">
           <ul className="calc-detail-list">
+            {calculation.carpetCount > 1 && <li>Количество ковров: {calculation.carpetCount} шт.</li>}
             <li>Заглушки: {calculation.plugCount} шт.</li>
             <li>Втулки: {calculation.bushingCount} шт.</li>
             <li>
-              Тросы: {calculation.cableLayout ? `${calculation.cableLayout.count} шт.` : 'не размещены'}
+              Тросы:{' '}
+              {calculation.cableLayout
+                ? `${calculation.cableLayout.count * calculation.carpetCount} шт.`
+                : 'не размещены'}
               {calculation.cableLayout && calculation.cableLayout.spacingsMm.length > 0
                 ? `, шаг ${calculation.cableLayout.spacingsMm.join(', ')} мм`
                 : ''}

@@ -13,6 +13,7 @@ import {
 } from './layoutRules';
 import { resolveLayoutDimensions } from './gapFit';
 import { calculateConfig } from './calculations';
+import { formatCarpetCountNoun, formatCarpetCountSuffix } from './carpetCount';
 import { getModuleUnitPrice, pricingConfig } from './pricing';
 import type { ModuleType, ProductConfig, ProfileGrade, Strip } from './types';
 
@@ -246,6 +247,23 @@ describe('calculations', () => {
     expect(result.narrowWidthDiscountAmount).toEqual({ standard: 0, reinforced: 0 });
     expect(result.totalPrice).toEqual(result.subtotalPrice);
   });
+
+  it('multiplies area, price and fittings by carpet count', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
+    const one = calculateConfig(makeConfig({ strips, carpetCount: 1 }));
+    const three = calculateConfig(makeConfig({ strips, carpetCount: 3 }));
+    expect(three.carpetCount).toBe(3);
+    expect(three.totalAreaM2).toBeCloseTo(one.totalAreaM2 * 3);
+    expect(three.plugCount).toBe(one.plugCount * 3);
+    expect(three.bushingCount).toBe(one.bushingCount * 3);
+    expect(three.cableLayout?.count).toBe(one.cableLayout?.count);
+    for (const grade of grades) {
+      expect(three.totalPrice[grade]).toBeCloseTo(one.totalPrice[grade] * 3);
+    }
+    const rubberOne = one.byType.find((row) => row.type === 'rubber')?.count ?? 0;
+    const rubberThree = three.byType.find((row) => row.type === 'rubber')?.count ?? 0;
+    expect(rubberThree).toBe(rubberOne * 3);
+  });
 });
 
 describe('pricing (прайс от 01.04.26, розница ₽/м² с НДС)', () => {
@@ -332,6 +350,23 @@ describe('getSourceCapLengthPx', () => {
     const capPx = getSourceCapLengthPx(moduleLengthPx);
     expect(capPx).toBeGreaterThan(0);
     expect(capPx).toBeLessThan(moduleLengthPx / 2);
+  });
+});
+
+describe('carpetCount', () => {
+  it('declines noun by number', () => {
+    expect(formatCarpetCountNoun(1)).toBe('ковёр');
+    expect(formatCarpetCountNoun(2)).toBe('ковра');
+    expect(formatCarpetCountNoun(5)).toBe('ковров');
+    expect(formatCarpetCountNoun(21)).toBe('ковёр');
+    expect(formatCarpetCountNoun(22)).toBe('ковра');
+    expect(formatCarpetCountNoun(11)).toBe('ковров');
+  });
+
+  it('adds calculation suffix only when count is greater than one', () => {
+    expect(formatCarpetCountSuffix(1)).toBeUndefined();
+    expect(formatCarpetCountSuffix(3)).toBe('за 3 ковра');
+    expect(formatCarpetCountSuffix(5)).toBe('за 5 ковров');
   });
 });
 

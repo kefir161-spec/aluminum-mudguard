@@ -1101,9 +1101,12 @@ body {
   font-size: 11px;
 }
 
-.sheet-meta--note {
-  font-size: 10px;
-  fill: #64748b;
+.sheet-comment__title {
+  font-weight: 700;
+}
+
+.sheet-comment__text {
+  font-weight: 400;
 }
 
 .sheet-title {

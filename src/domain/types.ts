@@ -35,6 +35,8 @@ export type ProductConfig = {
   projectName: string;
   clientName?: string;
   managerName?: string;
+  /** Комментарий заказчика/менеджера — выводится в левом нижнем углу чертежа. */
+  drawingComment?: string;
   /** Заказной размер (ковёр или приямок — см. dimensionSource). */
   orderWidthMm: number;
   orderLengthMm: number;
@@ -56,6 +58,8 @@ export type ProductConfig = {
   fitToOrderSize?: boolean;
   /** Скидка −10 % при ширине ковра менее 1200 мм (только если включена вручную). */
   narrowWidthDiscountEnabled?: boolean;
+  /** Число одинаковых ковров в заказе. */
+  carpetCount?: number;
   strips: Strip[];
   createdAt: string;
   updatedAt: string;
@@ -115,6 +119,8 @@ export type CalculationResult = {
   nominalLayoutWidthMm: number;
   remainderMm: number;
   isFullyFitted: boolean;
+  /** Число одинаковых ковров, на которое умножен расчёт. */
+  carpetCount: number;
   fitNote?: string;
   drawingFitNote?: string;
 };

@@ -17,6 +17,8 @@ import {
 import type { CableLayout, CableLayoutMode } from '../domain/cableLayout';
 import { getValidManualCounts, getValidSpacingsForManualCount } from '../domain/cableLayout';
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
+import { MAX_DRAWING_COMMENT_LENGTH } from '../domain/drawingComment';
+import { MAX_CARPET_COUNT, MIN_CARPET_COUNT } from '../domain/carpetCount';
 import { ModulePreviewThumb } from './ModulePreviewThumb';
 import { NumericMmField } from './NumericMmField';
 import { AccordionSection } from './ui/AccordionSection';
@@ -36,8 +38,10 @@ type Props = {
   ) => void;
   onFitToOrderSize: (value: boolean) => void;
   onNarrowWidthDiscount: (value: boolean) => void;
+  onCarpetCount: (value: number) => void;
   onClientName: (value: string) => void;
   onManagerName: (value: string) => void;
+  onDrawingComment: (value: string) => void;
   onUpdateStrip: (key: 'type' | 'widthMm', value: string | number) => void;
 };
 
@@ -49,8 +53,10 @@ export const PropertiesPanel = ({
   onCableLayout,
   onFitToOrderSize,
   onNarrowWidthDiscount,
+  onCarpetCount,
   onClientName,
   onManagerName,
+  onDrawingComment,
   onUpdateStrip,
 }: Props) => {
   const selectedIndex = selectedStrip ? config.strips.findIndex((strip) => strip.id === selectedStrip.id) : -1;
@@ -273,6 +279,35 @@ export const PropertiesPanel = ({
           {!narrowWidthDiscountEligible && (
             <p className="field-hint">Скидка доступна при ширине ковра менее {NARROW_WIDTH_DISCOUNT_THRESHOLD_MM} мм.</p>
           )}
+
+          <label className="ui-field-label" htmlFor="carpet-count">
+            Количество ковров
+          </label>
+          <NumericMmField
+            value={config.carpetCount ?? 1}
+            min={MIN_CARPET_COUNT}
+            max={MAX_CARPET_COUNT}
+            fractionDigits={0}
+            className="ui-input"
+            onCommit={onCarpetCount}
+          />
+          <p className="field-hint">Одинаковые изделия в заказе. Расчёт и комплектация умножаются.</p>
+
+          <label className="ui-field-label" htmlFor="drawing-comment-text">
+            Комментарий к чертежу
+          </label>
+          <textarea
+            id="drawing-comment-text"
+            className="ui-textarea"
+            value={config.drawingComment ?? ''}
+            maxLength={MAX_DRAWING_COMMENT_LENGTH}
+            rows={4}
+            placeholder="Появится в левом нижнем углу чертежа"
+            onChange={(event) => onDrawingComment(event.target.value)}
+          />
+          <p className="field-hint">
+            Осталось {MAX_DRAWING_COMMENT_LENGTH - (config.drawingComment?.length ?? 0)} симв.
+          </p>
         </AccordionSection>
       </div>
     </Panel>

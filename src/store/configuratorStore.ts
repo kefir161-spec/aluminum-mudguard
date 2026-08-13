@@ -18,6 +18,8 @@ import {
   sanitizePatternForAutofill,
   SCRAPER_AT_START_WARNING,
 } from '../domain/layoutRules';
+import { clampDrawingComment } from '../domain/drawingComment';
+import { clampCarpetCount } from '../domain/carpetCount';
 import type { DimensionSource, LayoutPreset, ModuleType, ProductConfig, Strip } from '../domain/types';
 import { clampCableCount, clampCableEdgeOffset, clampCableSpacing, clampOrderDimensionMm, clampMm } from '../domain/numbers';
 import { productionConstants } from '../domain/validation';
@@ -33,7 +35,7 @@ type StoreState = {
   applyPresetWarning?: string;
   stripActionWarning?: string;
   setActiveTab: (tab: ViewTab) => void;
-  setProjectMeta: (key: 'projectName' | 'clientName' | 'managerName', value: string) => void;
+  setProjectMeta: (key: 'projectName' | 'clientName' | 'managerName' | 'drawingComment', value: string) => void;
   setDimensions: (
     partial: Partial<
       Pick<ProductConfig, 'orderWidthMm' | 'orderLengthMm' | 'defaultStripWidthMm' | 'dimensionSource' | 'cableEdgeOffsetMm'>
@@ -49,6 +51,7 @@ type StoreState = {
   clearAllStrips: () => void;
   setFitToOrderSize: (fitToOrderSize: boolean) => void;
   setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled: boolean) => void;
+  setCarpetCount: (carpetCount: number) => void;
   setCableLayout: (
     partial: Partial<
       Pick<
@@ -92,6 +95,8 @@ const normalizeConfig = (config: ProductConfig): ProductConfig => {
     fitToOrderSize: config.fitToOrderSize ?? false,
     narrowWidthDiscountEnabled: config.narrowWidthDiscountEnabled ?? false,
     autoFillEnabled: config.autoFillEnabled ?? false,
+    drawingComment: clampDrawingComment(config.drawingComment ?? ''),
+    carpetCount: clampCarpetCount(config.carpetCount ?? 1),
     strips: normalizeStrips(config.strips),
   });
 };
@@ -117,6 +122,8 @@ const createNewProject = (): ProductConfig => {
     projectName: 'Новый проект',
     clientName: '',
     managerName: '',
+    drawingComment: '',
+    carpetCount: 1,
     orderWidthMm,
     orderLengthMm,
     totalWidthMm: carpet.totalWidthMm,
@@ -156,7 +163,7 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
     set((state) => ({
       config: withUpdatedAt({
         ...state.config,
-        [key]: value,
+        [key]: key === 'drawingComment' ? clampDrawingComment(value) : value,
       }),
     })),
   setDimensions: (partial) =>
@@ -354,6 +361,10 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
   setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled) =>
     set((state) => ({
       config: withUpdatedAt({ ...state.config, narrowWidthDiscountEnabled }),
+    })),
+  setCarpetCount: (carpetCount) =>
+    set((state) => ({
+      config: withUpdatedAt({ ...state.config, carpetCount: clampCarpetCount(carpetCount) }),
     })),
   setCableLayout: (partial) =>
     set((state) => {

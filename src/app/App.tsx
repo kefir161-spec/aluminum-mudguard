@@ -48,6 +48,7 @@ function AppContent() {
     clearAllStrips,
     setFitToOrderSize,
     setNarrowWidthDiscountEnabled,
+    setCarpetCount,
     setCableLayout,
     newProject,
     saveCurrentProject,
@@ -155,8 +156,10 @@ function AppContent() {
       onCableLayout={setCableLayout}
       onFitToOrderSize={setFitToOrderSize}
       onNarrowWidthDiscount={setNarrowWidthDiscountEnabled}
+      onCarpetCount={setCarpetCount}
       onClientName={(value) => setProjectMeta('clientName', value)}
       onManagerName={(value) => setProjectMeta('managerName', value)}
+      onDrawingComment={(value) => setProjectMeta('drawingComment', value)}
       onUpdateStrip={(key, value) => updateSelectedStrip({ [key]: value })}
     />
   );

@@ -26,6 +26,7 @@ import { TitleBlock } from './TitleBlock';
 import { DrawingSpecTable } from './DrawingSpecTable';
 import { ApprovalBlock } from './ApprovalBlock';
 import { DrawingSizeInfo } from './DrawingSizeInfo';
+import { DrawingComment } from './DrawingComment';
 import { buildLegendAnchors, LegendLeaderLines } from './LegendLeaderLines';
 
 type Props = {
@@ -223,6 +224,16 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           scaleLabel={scaleLabel}
           developer={config.managerName ?? ''}
           orgName={ESKD_ORG_NAME}
+        />
+
+        <DrawingComment
+          text={config.drawingComment ?? ''}
+          slot={{
+            x: layout.commentX,
+            width: layout.commentMaxW,
+            bottom: layout.commentBottom,
+            maxHeight: layout.commentMaxH,
+          }}
         />
       </svg>
     </div>

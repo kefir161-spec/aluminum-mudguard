@@ -1,4 +1,5 @@
 import { resolveCableLayout } from './cableLayout';
+import { clampCarpetCount } from './carpetCount';
 import { moduleTypeOrder } from './moduleDefinitions';
 import { computeGapTotal, countBushings, countPlugs } from './layoutRules';
 import { getCompressionAllowance, isWithinCompressionAllowance } from './compression';
@@ -63,23 +64,33 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     orderTarget.totalLengthMm,
     subtotalPrice,
   );
+  const unitTotalPrice = mapProfileGrades((grade) => subtotalPrice[grade] - narrowWidthDiscount.amount[grade]);
+  const carpetCount = clampCarpetCount(config.carpetCount ?? 1);
+  const scaleQty = (value: number): number => value * carpetCount;
+  const scalePrice = (price: typeof subtotalPrice) =>
+    mapProfileGrades((grade) => price[grade] * carpetCount);
 
   return {
-    totalAreaM2,
-    subtotalPrice,
+    totalAreaM2: scaleQty(totalAreaM2),
+    subtotalPrice: scalePrice(subtotalPrice),
     narrowWidthDiscountApplied: narrowWidthDiscount.applied,
     narrowWidthDiscountPercent: narrowWidthDiscount.percent,
-    narrowWidthDiscountAmount: narrowWidthDiscount.amount,
-    totalPrice: mapProfileGrades((grade) => subtotalPrice[grade] - narrowWidthDiscount.amount[grade]),
+    narrowWidthDiscountAmount: scalePrice(narrowWidthDiscount.amount),
+    totalPrice: scalePrice(unitTotalPrice),
     totalStripWidthMm,
     totalLayoutWidthMm,
     totalGapMm,
-    byType,
+    byType: byType.map((item) => ({
+      ...item,
+      count: scaleQty(item.count),
+      areaM2: scaleQty(item.areaM2),
+      price: scalePrice(item.price),
+    })),
     isUnderfilled: resolved.remainderMm > 0,
     isOverfilled: resolved.remainderMm < 0,
     widthDeltaMm,
-    plugCount: countPlugs(config.strips),
-    bushingCount: countBushings(config.strips.length, cableLayout?.count ?? 0),
+    plugCount: scaleQty(countPlugs(config.strips)),
+    bushingCount: scaleQty(countBushings(config.strips.length, cableLayout?.count ?? 0)),
     cableLayout,
     compressionAllowance,
     isWithinCompression: isWithinCompressionAllowance(
@@ -98,6 +109,7 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     nominalLayoutWidthMm: resolved.nominalWidthMm,
     remainderMm: resolved.remainderMm,
     isFullyFitted: resolved.isFullyFitted,
+    carpetCount,
     fitNote: resolved.fitNote,
     drawingFitNote: resolved.drawingFitNote,
   };
