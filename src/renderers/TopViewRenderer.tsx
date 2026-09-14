@@ -7,6 +7,7 @@ import { ProfileTextureDefs } from './ProfileTextureDefs';
 import { ProfileStripGraphics } from './ProfileStripGraphics';
 import { buildLayoutGeometry } from './layoutGeometry';
 import { HorizontalDimension, VerticalDimension } from './DimensionLines';
+import { KantFrameGraphics } from './KantFrameGraphics';
 import { getTopViewChrome, getTopViewDrawable, TOP_VIEW_MAT_SIZE_FACTOR } from './topViewLayout';
 
 type Props = {
@@ -82,8 +83,8 @@ export const TopViewRenderer = ({
         width={layout.matWidthPx}
         height={layout.matHeightPx}
         fill="#fff"
-        stroke="#1f2937"
-        strokeWidth={2}
+        stroke={layout.kantEnabled ? '#94a3b8' : '#1f2937'}
+        strokeWidth={layout.kantEnabled ? 1 : 2}
       />
       {/* Слой 1 (под текстурой): подсветка выбранной планки. */}
       {layoutRects.map((rect) => {
@@ -202,22 +203,33 @@ export const TopViewRenderer = ({
         </g>
       )}
 
+      {layout.kantEnabled && (
+        <KantFrameGraphics
+          x={layout.outerX}
+          y={layout.outerY}
+          width={layout.outerWidthPx}
+          height={layout.outerHeightPx}
+          kantPx={layout.kantPx}
+          idPrefix="topview"
+        />
+      )}
+
       <HorizontalDimension
-        x1={layout.matX}
-        x2={layout.matX + layout.matWidthPx}
-        y={layout.matY - 16}
-        objectY1={layout.matY}
-        objectY2={layout.matY}
-        label={`Ширина ${config.totalLengthMm.toFixed(0)}`}
+        x1={layout.outerX}
+        x2={layout.outerX + layout.outerWidthPx}
+        y={layout.outerY - 16}
+        objectY1={layout.outerY}
+        objectY2={layout.outerY}
+        label={`Ширина ${layout.overallLengthMm.toFixed(0)}`}
       />
 
       <VerticalDimension
-        x={layout.matX - 18}
-        y1={layout.matY}
-        y2={layout.matY + layout.matHeightPx}
-        objectX1={layout.matX}
-        objectX2={layout.matX}
-        label={`Длина ${config.totalWidthMm.toFixed(0)}`}
+        x={layout.outerX - 18}
+        y1={layout.outerY}
+        y2={layout.outerY + layout.outerHeightPx}
+        objectX1={layout.outerX}
+        objectX2={layout.outerX}
+        label={`Длина ${layout.overallWidthMm.toFixed(0)}`}
         labelOffset={-8}
       />
 

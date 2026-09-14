@@ -575,6 +575,13 @@ body {
   flex-shrink: 0;
 }
 
+.kant-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-3);
+}
+
 .selected-strip-card {
   display: grid;
   grid-template-columns: 64px 1fr;

@@ -1,6 +1,7 @@
 import type { CalculationResult, ProductConfig } from '../domain/types';
 import { formatMoney, formatNumber } from '../domain/calculations';
 import { formatCarpetCountSuffix } from '../domain/carpetCount';
+import { formatMatSizePair } from '../domain/dimensionLabels';
 import { moduleDefinitions } from '../domain/moduleDefinitions';
 
 type Props = {
@@ -61,6 +62,24 @@ export const SpecPanel = ({ config, calculation }: Props) => {
                 <td>{formatMoney(row.price.reinforced)} ₽</td>
               </tr>
             ))}
+            {calculation.kantEnabled && (
+              <tr>
+                <td>{rows.length + 1}</td>
+                <td>Кант</td>
+                <td>-</td>
+                <td>{formatNumber(calculation.kantWidthMm, 1)}</td>
+                <td>{formatNumber(calculation.kantLinearMeters * 1000, 1)}</td>
+                <td>{formatNumber(calculation.kantLinearMeters, 3)} пог. м</td>
+                <td className="spec-group" title="₽/пог. м">
+                  {formatMoney(calculation.kantUnitPrice)}
+                </td>
+                <td>{formatMoney(calculation.kantPrice)} ₽</td>
+                <td className="spec-group" title="₽/пог. м">
+                  {formatMoney(calculation.kantUnitPrice)}
+                </td>
+                <td>{formatMoney(calculation.kantPrice)} ₽</td>
+              </tr>
+            )}
             {calculation.narrowWidthDiscountApplied && (
               <tr className="spec-summary-row">
                 <td colSpan={6} className="spec-summary-label">
@@ -104,6 +123,12 @@ export const SpecPanel = ({ config, calculation }: Props) => {
         {carpetCount > 1 && (
           <p>
             <strong>Количество ковров:</strong> {carpetCount} шт.
+          </p>
+        )}
+        {calculation.kantEnabled && (
+          <p>
+            <strong>Кант:</strong> цена {formatMoney(calculation.kantUnitPrice)} ₽/пог. м. Габарит с кантом{' '}
+            {formatMatSizePair(calculation.kantOverallWidthMm, calculation.kantOverallLengthMm)}.
           </p>
         )}
       </div>

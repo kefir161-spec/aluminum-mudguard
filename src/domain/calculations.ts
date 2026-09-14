@@ -6,6 +6,7 @@ import { getCompressionAllowance, isWithinCompressionAllowance } from './compres
 import { resolveLayoutDimensions } from './gapFit';
 import { getOrderTargetDimensions } from './pitDimensions';
 import type { CalculationResult, ProductConfig, Strip } from './types';
+import { getKantMetrics, isOuterKantEnabled } from './kant';
 import { getModuleUnitPrice, getNarrowWidthDiscount, mapProfileGrades, pricingConfig } from './pricing';
 
 export const MM2_TO_M2 = 1_000_000;
@@ -66,6 +67,8 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
   );
   const unitTotalPrice = mapProfileGrades((grade) => subtotalPrice[grade] - narrowWidthDiscount.amount[grade]);
   const carpetCount = clampCarpetCount(config.carpetCount ?? 1);
+  const kantEnabled = isOuterKantEnabled(config.hasOuterKant, config.dimensionSource);
+  const kant = getKantMetrics(kantEnabled, config.totalWidthMm, config.totalLengthMm, carpetCount);
   const scaleQty = (value: number): number => value * carpetCount;
   const scalePrice = (price: typeof subtotalPrice) =>
     mapProfileGrades((grade) => price[grade] * carpetCount);
@@ -76,7 +79,7 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     narrowWidthDiscountApplied: narrowWidthDiscount.applied,
     narrowWidthDiscountPercent: narrowWidthDiscount.percent,
     narrowWidthDiscountAmount: scalePrice(narrowWidthDiscount.amount),
-    totalPrice: scalePrice(unitTotalPrice),
+    totalPrice: mapProfileGrades((grade) => scalePrice(unitTotalPrice)[grade] + kant.price),
     totalStripWidthMm,
     totalLayoutWidthMm,
     totalGapMm,
@@ -112,6 +115,13 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     carpetCount,
     fitNote: resolved.fitNote,
     drawingFitNote: resolved.drawingFitNote,
+    kantEnabled: kant.enabled,
+    kantWidthMm: kant.widthMm,
+    kantOverallWidthMm: kant.overallWidthMm,
+    kantOverallLengthMm: kant.overallLengthMm,
+    kantLinearMeters: kant.linearMeters,
+    kantUnitPrice: kant.unitPrice,
+    kantPrice: kant.price,
   };
 };
 

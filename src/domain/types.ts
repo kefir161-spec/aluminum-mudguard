@@ -60,6 +60,8 @@ export type ProductConfig = {
   narrowWidthDiscountEnabled?: boolean;
   /** Число одинаковых ковров в заказе. */
   carpetCount?: number;
+  /** Наружное алюминиевое обрамление (кант) 50 мм по периметру. */
+  hasOuterKant?: boolean;
   strips: Strip[];
   createdAt: string;
   updatedAt: string;
@@ -123,4 +125,13 @@ export type CalculationResult = {
   carpetCount: number;
   fitNote?: string;
   drawingFitNote?: string;
+  kantEnabled: boolean;
+  kantWidthMm: number;
+  /** Габарит с кантом по планкам (UI «длина»), мм. */
+  kantOverallWidthMm: number;
+  /** Габарит с кантом вдоль профиля (UI «ширина»), мм. */
+  kantOverallLengthMm: number;
+  kantLinearMeters: number;
+  kantUnitPrice: number;
+  kantPrice: number;
 };

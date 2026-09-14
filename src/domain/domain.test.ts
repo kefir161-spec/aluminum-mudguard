@@ -353,6 +353,13 @@ describe('drawingLayout', () => {
     expect(layout.specX).toBe(layout.rightColX);
     expect(layout.sizeInfoX).toBe(columnRight);
   });
+
+  it('reserves extra room for the kant size line', async () => {
+    const { computeSheetLayout } = await import('../renderers/drawingLayout');
+    const withoutKant = computeSheetLayout({ hasCableAnnotation: false });
+    const withKant = computeSheetLayout({ hasCableAnnotation: false, hasKantSizeLine: true });
+    expect(withKant.specY).toBeGreaterThan(withoutKant.specY);
+  });
 });
 
 describe('getSourceCapLengthPx', () => {
@@ -379,6 +386,102 @@ describe('carpetCount', () => {
     expect(formatCarpetCountSuffix(1)).toBeUndefined();
     expect(formatCarpetCountSuffix(3)).toBe('за 3 ковра');
     expect(formatCarpetCountSuffix(5)).toBe('за 5 ковров');
+  });
+});
+
+describe('outer kant', () => {
+  it('adds 50 mm on each side and prices the outer perimeter', async () => {
+    const { getKantMetrics, KANT_PRICE_PER_LINEAR_METER, KANT_WIDTH_MM } = await import('./kant');
+    const metrics = getKantMetrics(true, 1000, 1500, 1);
+    expect(KANT_WIDTH_MM).toBe(50);
+    expect(metrics.overallWidthMm).toBe(1100);
+    expect(metrics.overallLengthMm).toBe(1600);
+    expect(metrics.linearMeters).toBeCloseTo(5.4);
+    expect(metrics.price).toBeCloseTo(5.4 * KANT_PRICE_PER_LINEAR_METER);
+  });
+
+  it('is ignored when disabled', async () => {
+    const { getKantMetrics } = await import('./kant');
+    const metrics = getKantMetrics(false, 1000, 1500, 2);
+    expect(metrics.enabled).toBe(false);
+    expect(metrics.overallWidthMm).toBe(1000);
+    expect(metrics.overallLengthMm).toBe(1500);
+    expect(metrics.price).toBe(0);
+  });
+
+  it('does not apply for pit dimensions even if the flag is on', async () => {
+    const { isOuterKantEnabled } = await import('./kant');
+    expect(isOuterKantEnabled(true, 'carpet')).toBe(true);
+    expect(isOuterKantEnabled(true, 'pit')).toBe(false);
+  });
+
+  it('adds kant price to both profile grades after the narrow-width discount', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
+    const base = calculateConfig(makeConfig({ strips, hasOuterKant: false }));
+    const withKant = calculateConfig(makeConfig({ strips, hasOuterKant: true }));
+    expect(withKant.kantEnabled).toBe(true);
+    expect(withKant.kantWidthMm).toBe(50);
+    expect(withKant.kantOverallWidthMm).toBe(1100);
+    expect(withKant.kantOverallLengthMm).toBe(1600);
+    for (const grade of grades) {
+      expect(withKant.totalPrice[grade]).toBeCloseTo(base.totalPrice[grade] + withKant.kantPrice);
+    }
+    expect(withKant.subtotalPrice).toEqual(base.subtotalPrice);
+  });
+
+  it('does not discount the kant and scales with carpet count', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
+    const one = calculateConfig(
+      makeConfig({
+        strips,
+        hasOuterKant: true,
+        narrowWidthDiscountEnabled: true,
+        orderLengthMm: 1100,
+        totalLengthMm: 1100,
+        carpetCount: 1,
+      }),
+    );
+    const two = calculateConfig(
+      makeConfig({
+        strips,
+        hasOuterKant: true,
+        narrowWidthDiscountEnabled: true,
+        orderLengthMm: 1100,
+        totalLengthMm: 1100,
+        carpetCount: 2,
+      }),
+    );
+    expect(one.narrowWidthDiscountApplied).toBe(true);
+    expect(two.kantPrice).toBeCloseTo(one.kantPrice * 2);
+    expect(two.kantLinearMeters).toBeCloseTo(one.kantLinearMeters * 2);
+    for (const grade of grades) {
+      expect(two.totalPrice[grade]).toBeCloseTo(one.totalPrice[grade] * 2);
+    }
+  });
+
+  it('insets the layout by the kant width', async () => {
+    const { buildLayoutGeometry } = await import('../renderers/layoutGeometry');
+    const { KANT_WIDTH_MM } = await import('./kant');
+    const config = makeConfig({
+      hasOuterKant: true,
+      strips: rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000),
+    });
+    const layout = buildLayoutGeometry(config, 800, 400, 0, 0, { fit: 'contain', align: 'center' });
+    expect(layout.kantEnabled).toBe(true);
+    expect(layout.overallLengthMm).toBe(config.totalLengthMm + 2 * KANT_WIDTH_MM);
+    expect(layout.overallWidthMm).toBe(Math.max(config.totalWidthMm, layout.effectiveWidthMm) + 2 * KANT_WIDTH_MM);
+    expect(layout.matX).toBeCloseTo(layout.outerX + layout.kantPx);
+    expect(layout.matY).toBeCloseTo(layout.outerY + layout.kantPx);
+    expect(layout.matWidthPx).toBeCloseTo(layout.outerWidthPx - 2 * layout.kantPx);
+    expect(layout.matHeightPx).toBeCloseTo(layout.outerHeightPx - 2 * layout.kantPx);
+  });
+
+  it('lists kant in the drawing spec table', async () => {
+    const { buildSpecRows } = await import('../renderers/drawingSpecTableData');
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
+    const calculation = calculateConfig(makeConfig({ strips, hasOuterKant: true, carpetCount: 2 }));
+    const rows = buildSpecRows(calculation, calculation.cableLayout?.count ?? 0);
+    expect(rows.some((row) => row.label === 'Кант (обрамление)' && row.count === 8)).toBe(true);
   });
 });
 

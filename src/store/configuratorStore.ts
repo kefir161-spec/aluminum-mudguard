@@ -51,6 +51,7 @@ type StoreState = {
   clearAllStrips: () => void;
   setFitToOrderSize: (fitToOrderSize: boolean) => void;
   setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled: boolean) => void;
+  setHasOuterKant: (hasOuterKant: boolean) => void;
   setCarpetCount: (carpetCount: number) => void;
   setCableLayout: (
     partial: Partial<
@@ -97,6 +98,7 @@ const normalizeConfig = (config: ProductConfig): ProductConfig => {
     autoFillEnabled: config.autoFillEnabled ?? false,
     drawingComment: clampDrawingComment(config.drawingComment ?? ''),
     carpetCount: clampCarpetCount(config.carpetCount ?? 1),
+    hasOuterKant: dimensionSource === 'pit' ? false : Boolean(config.hasOuterKant),
     strips: normalizeStrips(config.strips),
   });
 };
@@ -136,6 +138,7 @@ const createNewProject = (): ProductConfig => {
     fitToOrderSize: false,
     narrowWidthDiscountEnabled: false,
     autoFillEnabled: false,
+    hasOuterKant: false,
     strips: [],
     createdAt: now,
     updatedAt: now,
@@ -173,7 +176,10 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
       if (partial.orderLengthMm !== undefined) next.orderLengthMm = clampCarpetWidthMm(partial.orderLengthMm);
       if (partial.defaultStripWidthMm !== undefined) next.defaultStripWidthMm = clampMm(partial.defaultStripWidthMm);
       if (partial.cableEdgeOffsetMm !== undefined) next.cableEdgeOffsetMm = clampCableEdgeOffset(partial.cableEdgeOffsetMm);
-      if (partial.dimensionSource !== undefined) next.dimensionSource = partial.dimensionSource;
+      if (partial.dimensionSource !== undefined) {
+        next.dimensionSource = partial.dimensionSource;
+        if (partial.dimensionSource === 'pit') next.hasOuterKant = false;
+      }
 
       const synced = syncOrderDimensions(next);
       const widthChanged =
@@ -361,6 +367,13 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
   setNarrowWidthDiscountEnabled: (narrowWidthDiscountEnabled) =>
     set((state) => ({
       config: withUpdatedAt({ ...state.config, narrowWidthDiscountEnabled }),
+    })),
+  setHasOuterKant: (hasOuterKant) =>
+    set((state) => ({
+      config: withUpdatedAt({
+        ...state.config,
+        hasOuterKant: state.config.dimensionSource === 'pit' ? false : hasOuterKant,
+      }),
     })),
   setCarpetCount: (carpetCount) =>
     set((state) => ({

@@ -26,6 +26,9 @@ export const buildSpecRows = (calculation: CalculationResult, cableCount: number
     rows.push({ label: 'Трос', count: cableCount * qty });
   }
   rows.push({ label: 'Втулка', count: calculation.bushingCount });
+  if (calculation.kantEnabled) {
+    rows.push({ label: 'Кант (обрамление)', count: 4 * qty });
+  }
 
   return rows;
 };

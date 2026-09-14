@@ -19,6 +19,7 @@ import {
 import { ProfileTextureDefs } from './ProfileTextureDefs';
 import { ProfileStripGraphics } from './ProfileStripGraphics';
 import { buildLayoutGeometry, cablePositionsAlongLength } from './layoutGeometry';
+import { KantFrameGraphics } from './KantFrameGraphics';
 import { CableSpacingAnnotation, HorizontalDimension, VerticalDimension } from './DimensionLines';
 import { computeSheetLayout } from './drawingLayout';
 import { DrawingFrame } from './DrawingFrame';
@@ -42,7 +43,10 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
   const cableCount = cableLayout?.count ?? 0;
   const hasCableAnnotation = Boolean(cableLayout && cableLayout.spacingsMm.length > 0);
 
-  const layout = computeSheetLayout({ hasCableAnnotation });
+  const layout = computeSheetLayout({
+    hasCableAnnotation,
+    hasKantSizeLine: calculation.kantEnabled,
+  });
 
   // Полотно максимально заполняет отведённую область (без уменьшения до стандартного масштаба).
   const matLayout = buildLayoutGeometry(config, layout.matW, layout.matH, layout.matX, layout.matY, {
@@ -52,7 +56,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
   });
   const layoutRects = matLayout.rects;
   const lengthPxPerMm = getLengthPxPerMm(matLayout.matWidthPx, config.totalLengthMm);
-  const drawnWidthMm = matLayout.scale > 0 ? matLayout.matHeightPx / matLayout.scale : 0;
+  const drawnWidthMm = matLayout.scale > 0 ? matLayout.outerHeightPx / matLayout.scale : 0;
   const legendAnchors = buildLegendAnchors(layoutRects, config.strips);
 
   const cableLinesX =
@@ -72,10 +76,12 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
   const scaleLabel = formatScaleLabel(snapStandardScale(naturalRatio));
   const designation = deriveDesignation(config);
   const productName = deriveProductName(config);
-  const matRight = matLayout.matX + matLayout.matWidthPx;
+  const outerRight = matLayout.outerX + matLayout.outerWidthPx;
+  const outerBottom = matLayout.outerY + matLayout.outerHeightPx;
   /** Размер сразу справа от полотна; подписи выносок — правее размерной линии. */
-  const widthDimX = matRight + mm(8);
+  const widthDimX = outerRight + mm(8);
   const legendLabelX = widthDimX + mm(7);
+  const kantIdPrefix = forExport ? 'export-kant' : 'drawing-kant';
 
   return (
     <div
@@ -152,9 +158,9 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           <line
             key={`cable-axis-${index}`}
             x1={lineX}
-            y1={matLayout.matY - mm(2)}
+            y1={matLayout.matY}
             x2={lineX}
-            y2={matLayout.matY + matLayout.matHeightPx + mm(2)}
+            y2={matLayout.matY + matLayout.matHeightPx}
             stroke="#000"
             strokeWidth={LINE_THIN_PX}
             strokeDasharray="12 3 2 3"
@@ -164,7 +170,7 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
         {hasCableAnnotation && cableLayout && (
           <CableSpacingAnnotation
             matX={matLayout.matX}
-            matY={matLayout.matY}
+            matY={matLayout.outerY}
             matW={matLayout.matWidthPx}
             totalLengthMm={config.totalLengthMm}
             edgeOffsetMm={cableLayout.edgeOffsetMm}
@@ -172,25 +178,36 @@ export const DrawingSheet = ({ config, calculation, forExport = false }: Props) 
           />
         )}
 
+        {matLayout.kantEnabled && (
+          <KantFrameGraphics
+            x={matLayout.outerX}
+            y={matLayout.outerY}
+            width={matLayout.outerWidthPx}
+            height={matLayout.outerHeightPx}
+            kantPx={matLayout.kantPx}
+            idPrefix={kantIdPrefix}
+          />
+        )}
+
         <HorizontalDimension
-          x1={matLayout.matX}
-          x2={matRight}
+          x1={matLayout.outerX}
+          x2={outerRight}
           y={layout.lengthDimY}
-          objectY1={matLayout.matY + matLayout.matHeightPx}
-          objectY2={matLayout.matY + matLayout.matHeightPx}
-          label={`${Math.round(config.totalLengthMm)}`}
+          objectY1={outerBottom}
+          objectY2={outerBottom}
+          label={`${Math.round(matLayout.overallLengthMm)}`}
         />
         <VerticalDimension
           x={widthDimX}
-          y1={matLayout.matY}
-          y2={matLayout.matY + matLayout.matHeightPx}
-          objectX1={matRight}
-          objectX2={matRight}
+          y1={matLayout.outerY}
+          y2={outerBottom}
+          objectX1={outerRight}
+          objectX2={outerRight}
           label={`${Math.round(drawnWidthMm)}`}
         />
 
         {legendAnchors.length > 0 && (
-          <LegendLeaderLines matRight={matRight} anchors={legendAnchors} labelX={legendLabelX} />
+          <LegendLeaderLines matRight={outerRight} anchors={legendAnchors} labelX={legendLabelX} />
         )}
 
         <ApprovalBlock

@@ -48,6 +48,7 @@ function AppContent() {
     clearAllStrips,
     setFitToOrderSize,
     setNarrowWidthDiscountEnabled,
+    setHasOuterKant,
     setCarpetCount,
     setCableLayout,
     newProject,
@@ -156,6 +157,7 @@ function AppContent() {
       onCableLayout={setCableLayout}
       onFitToOrderSize={setFitToOrderSize}
       onNarrowWidthDiscount={setNarrowWidthDiscountEnabled}
+      onOuterKant={setHasOuterKant}
       onCarpetCount={setCarpetCount}
       onClientName={(value) => setProjectMeta('clientName', value)}
       onManagerName={(value) => setProjectMeta('managerName', value)}

@@ -19,8 +19,13 @@ export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => 
   const calculatedWidthMm = getCalculatedLayoutWidthMm(calculation);
   const requested = formatMatSizePair(config.orderWidthMm, config.orderLengthMm);
   const calculated = formatMatSizePair(calculatedWidthMm, config.totalLengthMm);
+  const withKant =
+    calculation.kantEnabled
+      ? formatMatSizePair(calculation.kantOverallWidthMm, calculation.kantOverallLengthMm)
+      : undefined;
   const maxWidth = width != null ? width - mm(2) : undefined;
   const carpetCount = calculation.carpetCount || 1;
+  const countY = y + mm(LINE_HEIGHT_MM * (withKant ? 3 : 2));
 
   return (
     <g className="sheet-size-info">
@@ -31,12 +36,15 @@ export const DrawingSizeInfo = ({ x, y, config, calculation, width }: Props) => 
         text={`Расчетный размер ковра ${calculated}`}
         maxWidth={maxWidth}
       />
-      <SizeLine
-        x={x}
-        y={y + mm(LINE_HEIGHT_MM * 2)}
-        text={`Кол-во: ${carpetCount} шт.`}
-        maxWidth={maxWidth}
-      />
+      {withKant && (
+        <SizeLine
+          x={x}
+          y={y + mm(LINE_HEIGHT_MM * 2)}
+          text={`Размер с кантом ${withKant}`}
+          maxWidth={maxWidth}
+        />
+      )}
+      <SizeLine x={x} y={countY} text={`Кол-во: ${carpetCount} шт.`} maxWidth={maxWidth} />
     </g>
   );
 };

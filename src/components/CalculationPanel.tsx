@@ -4,6 +4,7 @@ import { moduleDefinitions } from '../domain/moduleDefinitions';
 import type { CalculationResult } from '../domain/types';
 import { formatMoney, formatNumber } from '../domain/calculations';
 import { formatCarpetCountSuffix } from '../domain/carpetCount';
+import { formatMatSizePair } from '../domain/dimensionLabels';
 import { Button } from './ui/Button';
 import { MetricCard } from './ui/MetricCard';
 import { Panel } from './ui/Panel';
@@ -73,6 +74,12 @@ export const CalculationSummary = ({
           label={forCarpets ? `Стоимость, усиленная ${forCarpets}` : 'Стоимость, усиленная'}
           value={`${formatMoney(calculation.totalPrice.reinforced)} ₽`}
         />
+        {calculation.kantEnabled && (
+          <MetricCard
+            label={forCarpets ? `Кант ${forCarpets}` : 'Кант'}
+            value={`${formatMoney(calculation.kantPrice)} ₽`}
+          />
+        )}
       </div>
       {compact && onExpandDetails && (
         <Button variant="ghost" size="sm" onClick={onExpandDetails} className="calc-summary__expand">
@@ -133,6 +140,13 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                 </li>
               </>
             )}
+            {calculation.kantEnabled && (
+              <li>
+                Кант {calculation.kantWidthMm} мм: {formatNumber(calculation.kantLinearMeters, 3)} пог. м ×{' '}
+                {formatMoney(calculation.kantUnitPrice)} ₽ = {formatMoney(calculation.kantPrice)} ₽. Габарит{' '}
+                {formatMatSizePair(calculation.kantOverallWidthMm, calculation.kantOverallLengthMm)}.
+              </li>
+            )}
           </ul>
           <div className="spec-table-wrap">
             <table className="data-table data-table--compact">
@@ -155,6 +169,15 @@ export const CalculationPanel = ({ calculation, warnings }: Props) => {
                     <td>{formatMoney(row.price.reinforced)} ₽</td>
                   </tr>
                 ))}
+                {calculation.kantEnabled && (
+                  <tr>
+                    <td>Кант {calculation.kantWidthMm} мм</td>
+                    <td>{formatNumber(calculation.kantLinearMeters, 3)} пог. м</td>
+                    <td>-</td>
+                    <td>{formatMoney(calculation.kantPrice)} ₽</td>
+                    <td>{formatMoney(calculation.kantPrice)} ₽</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

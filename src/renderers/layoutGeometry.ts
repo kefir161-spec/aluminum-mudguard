@@ -1,4 +1,5 @@
 import { resolveLayoutDimensions } from '../domain/gapFit';
+import { isOuterKantEnabled, KANT_WIDTH_MM } from '../domain/kant';
 import type { ProductConfig } from '../domain/types';
 import type { ResolvedLayout } from '../domain/gapFit';
 
@@ -23,6 +24,16 @@ export type LayoutGeometry = {
   matHeightPx: number;
   scale: number;
   resolved: ResolvedLayout;
+  kantEnabled: boolean;
+  kantPx: number;
+  outerX: number;
+  outerY: number;
+  outerWidthPx: number;
+  outerHeightPx: number;
+  /** Габарит вдоль профиля (горизонталь), мм. */
+  overallLengthMm: number;
+  /** Габарит по планкам (вертикаль), мм. */
+  overallWidthMm: number;
 };
 
 export type LayoutBuildOptions = {
@@ -55,26 +66,35 @@ export const buildLayoutGeometry = (
   );
   const targetWidthMm = Math.max(config.totalWidthMm, resolved.effectiveWidthMm, 1);
   const totalLengthMm = Math.max(config.totalLengthMm, 1);
+  const kantEnabled = isOuterKantEnabled(config.hasOuterKant, config.dimensionSource);
+  const kantWidthMm = kantEnabled ? KANT_WIDTH_MM : 0;
+  const overallLengthMm = totalLengthMm + 2 * kantWidthMm;
+  const overallWidthMm = targetWidthMm + 2 * kantWidthMm;
 
   const drawableWidth = viewportWidth * boundedSizeFactor;
   const drawableHeight = viewportHeight * boundedSizeFactor;
 
   let scale =
     fit === 'fillWidth'
-      ? drawableWidth / totalLengthMm
-      : Math.min(drawableWidth / totalLengthMm, drawableHeight / targetWidthMm);
+      ? drawableWidth / overallLengthMm
+      : Math.min(drawableWidth / overallLengthMm, drawableHeight / overallWidthMm);
 
-  let matWidthPx = totalLengthMm * scale;
-  let matHeightPx = targetWidthMm * scale;
+  let outerWidthPx = overallLengthMm * scale;
+  let outerHeightPx = overallWidthMm * scale;
 
-  if (fit === 'fillWidth' && matHeightPx > drawableHeight) {
-    scale = drawableHeight / targetWidthMm;
-    matWidthPx = totalLengthMm * scale;
-    matHeightPx = targetWidthMm * scale;
+  if (fit === 'fillWidth' && outerHeightPx > drawableHeight) {
+    scale = drawableHeight / overallWidthMm;
+    outerWidthPx = overallLengthMm * scale;
+    outerHeightPx = overallWidthMm * scale;
   }
 
-  const matX = align === 'start' ? originX : originX + (viewportWidth - matWidthPx) / 2;
-  const matY = align === 'start' ? originY : originY + (viewportHeight - matHeightPx) / 2;
+  const outerX = align === 'start' ? originX : originX + (viewportWidth - outerWidthPx) / 2;
+  const outerY = align === 'start' ? originY : originY + (viewportHeight - outerHeightPx) / 2;
+  const kantPx = kantWidthMm * scale;
+  const matX = outerX + kantPx;
+  const matY = outerY + kantPx;
+  const matWidthPx = totalLengthMm * scale;
+  const matHeightPx = targetWidthMm * scale;
   const rects: LayoutRect[] = [];
   let y = matY;
 
@@ -104,6 +124,14 @@ export const buildLayoutGeometry = (
     matHeightPx,
     scale,
     resolved,
+    kantEnabled,
+    kantPx,
+    outerX,
+    outerY,
+    outerWidthPx,
+    outerHeightPx,
+    overallLengthMm,
+    overallWidthMm,
   };
 };
 

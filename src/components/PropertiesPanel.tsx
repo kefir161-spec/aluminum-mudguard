@@ -20,9 +20,11 @@ import { getValidManualCounts, getValidSpacingsForManualCount } from '../domain/
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
 import { MAX_DRAWING_COMMENT_LENGTH } from '../domain/drawingComment';
 import { MAX_CARPET_COUNT, MIN_CARPET_COUNT } from '../domain/carpetCount';
+import { KANT_PRICE_PER_LINEAR_METER, KANT_WIDTH_MM } from '../domain/kant';
 import { ModulePreviewThumb } from './ModulePreviewThumb';
 import { NumericMmField } from './NumericMmField';
 import { AccordionSection } from './ui/AccordionSection';
+import { Button } from './ui/Button';
 import { Panel } from './ui/Panel';
 import { SectionHeader } from './ui/SectionHeader';
 
@@ -39,6 +41,7 @@ type Props = {
   ) => void;
   onFitToOrderSize: (value: boolean) => void;
   onNarrowWidthDiscount: (value: boolean) => void;
+  onOuterKant: (value: boolean) => void;
   onCarpetCount: (value: number) => void;
   onClientName: (value: string) => void;
   onManagerName: (value: string) => void;
@@ -54,6 +57,7 @@ export const PropertiesPanel = ({
   onCableLayout,
   onFitToOrderSize,
   onNarrowWidthDiscount,
+  onOuterKant,
   onCarpetCount,
   onClientName,
   onManagerName,
@@ -63,6 +67,8 @@ export const PropertiesPanel = ({
   const selectedIndex = selectedStrip ? config.strips.findIndex((strip) => strip.id === selectedStrip.id) : -1;
   const isEdgeStrip = selectedIndex === 0 || selectedIndex === config.strips.length - 1;
   const narrowWidthDiscountEligible = isNarrowWidthDiscountEligible(config.totalLengthMm);
+  const kantAvailable = config.dimensionSource !== 'pit';
+  const kantEnabled = Boolean(config.hasOuterKant) && kantAvailable;
   const isManualCableLayout = config.cableLayoutMode === 'manual';
   const validManualCounts = getValidManualCounts(config.totalLengthMm);
   const manualCableCount = config.manualCableCount ?? validManualCounts[0] ?? 2;
@@ -280,6 +286,27 @@ export const PropertiesPanel = ({
           {!narrowWidthDiscountEligible && (
             <p className="field-hint">Скидка доступна при ширине ковра менее {NARROW_WIDTH_DISCOUNT_THRESHOLD_MM} мм.</p>
           )}
+
+          <div className="kant-option">
+            <Button
+              variant={kantEnabled ? 'success' : 'secondary'}
+              size="sm"
+              fullWidth
+              aria-pressed={kantEnabled}
+              disabled={!kantAvailable}
+              onClick={() => onOuterKant(!kantEnabled)}
+            >
+              {kantEnabled ? 'Кант 50 мм включён' : 'Кант 50 мм'}
+            </Button>
+            {kantAvailable ? (
+              <p className="field-hint">
+                Алюминиевое обрамление {KANT_WIDTH_MM} мм. К размеру ковра +{KANT_WIDTH_MM} мм с каждой стороны.
+                {` ${KANT_PRICE_PER_LINEAR_METER} ₽/пог. м.`}
+              </p>
+            ) : (
+              <p className="field-hint">Кант доступен при размере ковра, не для приямка.</p>
+            )}
+          </div>
 
           <label className="ui-field-label" htmlFor="carpet-count">
             Количество ковров

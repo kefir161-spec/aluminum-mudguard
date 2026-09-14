@@ -28,6 +28,7 @@ export type SheetLayout = {
 
 type LayoutInput = {
   hasCableAnnotation: boolean;
+  hasKantSizeLine?: boolean;
 };
 
 /** Отступ правой колонки от рамки, чтобы её блоки не сливались с линией рамки. */
@@ -42,7 +43,7 @@ const LENGTH_DIM_ZONE_H_MM = 12;
  * Компоновка листа: крупное полотно слева, выноски и размеры справа от него,
  * блок «Согласовано», размеры ковра и комплектация — в правой колонке.
  */
-export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLayout => {
+export const computeSheetLayout = ({ hasCableAnnotation, hasKantSizeLine = false }: LayoutInput): SheetLayout => {
   const frame = getFrameBounds();
 
   const titleBlockX = frame.right - mm(TITLE_BLOCK_MM.width);
@@ -59,7 +60,7 @@ export const computeSheetLayout = ({ hasCableAnnotation }: LayoutInput): SheetLa
   const sizeInfoY = approvalY + mm(APPROVAL_BLOCK_HEIGHT_MM) + mm(4);
 
   const specX = rightColX;
-  const specY = sizeInfoY + mm(22);
+  const specY = sizeInfoY + mm(hasKantSizeLine ? 30 : 22);
 
   const mainTop = frame.top + mm(2);
   const mainBottom = titleBlockY - mm(2);
