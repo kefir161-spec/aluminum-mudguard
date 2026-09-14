@@ -421,12 +421,20 @@ describe('outer kant', () => {
     const withKant = calculateConfig(makeConfig({ strips, hasOuterKant: true }));
     expect(withKant.kantEnabled).toBe(true);
     expect(withKant.kantWidthMm).toBe(50);
-    expect(withKant.kantOverallWidthMm).toBe(1100);
+    expect(withKant.kantOverallWidthMm).toBe(withKant.nominalLayoutWidthMm + 100);
     expect(withKant.kantOverallLengthMm).toBe(1600);
     for (const grade of grades) {
       expect(withKant.totalPrice[grade]).toBeCloseTo(base.totalPrice[grade] + withKant.kantPrice);
     }
     expect(withKant.subtotalPrice).toEqual(base.subtotalPrice);
+  });
+
+  it('adds kant to the calculated layout size, not the ordered size', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
+    const result = calculateConfig(makeConfig({ strips, hasOuterKant: true }));
+    expect(result.nominalLayoutWidthMm).toBeLessThan(1000);
+    expect(result.kantOverallWidthMm).toBe(result.nominalLayoutWidthMm + 100);
+    expect(result.kantOverallLengthMm).toBe(result.orderTargetLengthMm + 100);
   });
 
   it('does not discount the kant and scales with carpet count', () => {
@@ -469,7 +477,7 @@ describe('outer kant', () => {
     const layout = buildLayoutGeometry(config, 800, 400, 0, 0, { fit: 'contain', align: 'center' });
     expect(layout.kantEnabled).toBe(true);
     expect(layout.overallLengthMm).toBe(config.totalLengthMm + 2 * KANT_WIDTH_MM);
-    expect(layout.overallWidthMm).toBe(Math.max(config.totalWidthMm, layout.effectiveWidthMm) + 2 * KANT_WIDTH_MM);
+    expect(layout.overallWidthMm).toBe(layout.layoutWidthMm + 2 * KANT_WIDTH_MM);
     expect(layout.matX).toBeCloseTo(layout.outerX + layout.kantPx);
     expect(layout.matY).toBeCloseTo(layout.outerY + layout.kantPx);
     expect(layout.matWidthPx).toBeCloseTo(layout.outerWidthPx - 2 * layout.kantPx);

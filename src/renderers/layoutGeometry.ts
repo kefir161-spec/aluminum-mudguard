@@ -1,5 +1,5 @@
 import { resolveLayoutDimensions } from '../domain/gapFit';
-import { isOuterKantEnabled, KANT_WIDTH_MM } from '../domain/kant';
+import { isOuterKantEnabled, KANT_WIDTH_MM, resolveKantInnerSizeMm } from '../domain/kant';
 import type { ProductConfig } from '../domain/types';
 import type { ResolvedLayout } from '../domain/gapFit';
 
@@ -64,9 +64,19 @@ export const buildLayoutGeometry = (
     config.totalWidthMm,
     config.fitToOrderSize ?? false,
   );
-  const targetWidthMm = Math.max(config.totalWidthMm, resolved.effectiveWidthMm, 1);
-  const totalLengthMm = Math.max(config.totalLengthMm, 1);
   const kantEnabled = isOuterKantEnabled(config.hasOuterKant, config.dimensionSource);
+  const kantInner = resolveKantInnerSizeMm(
+    config.fitToOrderSize ?? false,
+    resolved.fitApplied,
+    resolved.effectiveWidthMm,
+    resolved.nominalWidthMm,
+    config.totalLengthMm,
+  );
+  const targetWidthMm = Math.max(
+    kantEnabled ? kantInner.alongPlanksMm : Math.max(config.totalWidthMm, resolved.effectiveWidthMm),
+    1,
+  );
+  const totalLengthMm = Math.max(kantEnabled ? kantInner.alongProfileMm : config.totalLengthMm, 1);
   const kantWidthMm = kantEnabled ? KANT_WIDTH_MM : 0;
   const overallLengthMm = totalLengthMm + 2 * kantWidthMm;
   const overallWidthMm = targetWidthMm + 2 * kantWidthMm;

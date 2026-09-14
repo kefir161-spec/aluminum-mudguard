@@ -6,7 +6,7 @@ import { getCompressionAllowance, isWithinCompressionAllowance } from './compres
 import { resolveLayoutDimensions } from './gapFit';
 import { getOrderTargetDimensions } from './pitDimensions';
 import type { CalculationResult, ProductConfig, Strip } from './types';
-import { getKantMetrics, isOuterKantEnabled } from './kant';
+import { getKantMetrics, isOuterKantEnabled, resolveKantInnerSizeMm } from './kant';
 import { getModuleUnitPrice, getNarrowWidthDiscount, mapProfileGrades, pricingConfig } from './pricing';
 
 export const MM2_TO_M2 = 1_000_000;
@@ -68,7 +68,14 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
   const unitTotalPrice = mapProfileGrades((grade) => subtotalPrice[grade] - narrowWidthDiscount.amount[grade]);
   const carpetCount = clampCarpetCount(config.carpetCount ?? 1);
   const kantEnabled = isOuterKantEnabled(config.hasOuterKant, config.dimensionSource);
-  const kant = getKantMetrics(kantEnabled, config.totalWidthMm, config.totalLengthMm, carpetCount);
+  const kantInner = resolveKantInnerSizeMm(
+    fitToOrderSize,
+    resolved.fitApplied,
+    resolved.effectiveWidthMm,
+    resolved.nominalWidthMm,
+    config.totalLengthMm,
+  );
+  const kant = getKantMetrics(kantEnabled, kantInner.alongPlanksMm, kantInner.alongProfileMm, carpetCount);
   const scaleQty = (value: number): number => value * carpetCount;
   const scalePrice = (price: typeof subtotalPrice) =>
     mapProfileGrades((grade) => price[grade] * carpetCount);

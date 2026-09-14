@@ -300,7 +300,8 @@ export const PropertiesPanel = ({
             </Button>
             {kantAvailable ? (
               <p className="field-hint">
-                Алюминиевое обрамление {KANT_WIDTH_MM} мм. К размеру ковра +{KANT_WIDTH_MM} мм с каждой стороны.
+                Алюминиевое обрамление {KANT_WIDTH_MM} мм. К расчётному размеру ковра +{KANT_WIDTH_MM} мм с каждой
+                стороны.
                 {` ${KANT_PRICE_PER_LINEAR_METER} ₽/пог. м.`}
               </p>
             ) : (

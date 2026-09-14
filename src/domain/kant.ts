@@ -27,6 +27,18 @@ export const isOuterKantEnabled = (
 const withKantOverallMm = (innerMm: number, enabled: boolean): number =>
   enabled ? innerMm + 2 * KANT_WIDTH_MM : innerMm;
 
+/** Внутренний размер под кант: расчётный ковёр, не заказной габарит. */
+export const resolveKantInnerSizeMm = (
+  fitToOrderSize: boolean,
+  fitApplied: boolean,
+  effectiveWidthMm: number,
+  nominalWidthMm: number,
+  alongProfileMm: number,
+): { alongPlanksMm: number; alongProfileMm: number } => ({
+  alongPlanksMm: fitToOrderSize && fitApplied ? effectiveWidthMm : nominalWidthMm,
+  alongProfileMm,
+});
+
 export const getKantMetrics = (
   enabled: boolean,
   carpetAlongPlanksMm: number,
