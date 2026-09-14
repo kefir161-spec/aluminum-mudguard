@@ -14,9 +14,12 @@ export const MAX_CABLES = 10;
 
 export const PIT_INSET_MM = 10;
 
-/** Минимальный и максимальный заказной габарит (ширина и длина), мм. */
+/** Минимальный заказной габарит (ширина и длина), мм. */
 export const MIN_ORDER_DIMENSION_MM = 100;
-export const MAX_ORDER_DIMENSION_MM = 3000;
+/** Максимальная ширина ковра (вдоль профиля), мм. */
+export const MAX_CARPET_WIDTH_MM = 3000;
+/** Практический верхний предел длины ковра (по планкам), мм. */
+export const MAX_CARPET_LENGTH_MM = 50_000;
 
 export const COMPRESSION_AT_1000_MM = 7;
 export const COMPRESSION_AT_2000_MM = 12;

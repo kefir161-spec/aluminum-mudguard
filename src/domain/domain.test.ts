@@ -248,6 +248,18 @@ describe('calculations', () => {
     expect(result.totalPrice).toEqual(result.subtotalPrice);
   });
 
+  it('calculates a carpet longer than 3000 mm', () => {
+    const config = makeConfig({
+      orderWidthMm: 4500,
+      totalWidthMm: 4500,
+      strips: rebuildLayoutToTargetWidth(['rubber', 'pile'], 4500),
+    });
+    const result = calculateConfig(config);
+    expect(result.orderTargetWidthMm).toBe(4500);
+    expect(result.totalAreaM2).toBeGreaterThan(0);
+    expect(result.cableLayout?.count).toBeGreaterThan(0);
+  });
+
   it('multiplies area, price and fittings by carpet count', () => {
     const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
     const one = calculateConfig(makeConfig({ strips, carpetCount: 1 }));
@@ -370,12 +382,19 @@ describe('carpetCount', () => {
   });
 });
 
-describe('clampOrderDimensionMm', () => {
-  it('clamps order dimensions to 100–3000 mm', async () => {
-    const { clampOrderDimensionMm } = await import('./numbers');
-    expect(clampOrderDimensionMm(50)).toBe(100);
-    expect(clampOrderDimensionMm(1500)).toBe(1500);
-    expect(clampOrderDimensionMm(3500)).toBe(3000);
+describe('carpet dimension clamps', () => {
+  it('limits carpet width to 100–3000 mm', async () => {
+    const { clampCarpetWidthMm } = await import('./numbers');
+    expect(clampCarpetWidthMm(50)).toBe(100);
+    expect(clampCarpetWidthMm(1500)).toBe(1500);
+    expect(clampCarpetWidthMm(3500)).toBe(3000);
+  });
+
+  it('allows carpet length above 3000 mm', async () => {
+    const { clampCarpetLengthMm } = await import('./numbers');
+    expect(clampCarpetLengthMm(50)).toBe(100);
+    expect(clampCarpetLengthMm(4500)).toBe(4500);
+    expect(clampCarpetLengthMm(80_000)).toBe(50_000);
   });
 });
 

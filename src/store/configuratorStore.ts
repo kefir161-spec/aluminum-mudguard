@@ -21,7 +21,7 @@ import {
 import { clampDrawingComment } from '../domain/drawingComment';
 import { clampCarpetCount } from '../domain/carpetCount';
 import type { DimensionSource, LayoutPreset, ModuleType, ProductConfig, Strip } from '../domain/types';
-import { clampCableCount, clampCableEdgeOffset, clampCableSpacing, clampOrderDimensionMm, clampMm } from '../domain/numbers';
+import { clampCableCount, clampCableEdgeOffset, clampCableSpacing, clampCarpetLengthMm, clampCarpetWidthMm, clampMm } from '../domain/numbers';
 import { productionConstants } from '../domain/validation';
 import { createDemoProjects, demoProjectIdSet } from '../data/demoProjects';
 import { deleteProjectById, loadStorage, upsertProject } from '../storage/projectStorage';
@@ -87,8 +87,8 @@ const normalizeConfig = (config: ProductConfig): ProductConfig => {
   return syncOrderDimensions({
     ...config,
     dimensionSource,
-    orderWidthMm: clampOrderDimensionMm(orderWidthMm),
-    orderLengthMm: clampOrderDimensionMm(orderLengthMm),
+    orderWidthMm: clampCarpetLengthMm(orderWidthMm),
+    orderLengthMm: clampCarpetWidthMm(orderLengthMm),
     cableEdgeOffsetMm: config.cableEdgeOffsetMm ?? CABLE_EDGE_OFFSET_DEFAULT_MM,
     cableLayoutMode: config.cableLayoutMode ?? 'auto',
     defaultStripWidthMm: config.defaultStripWidthMm ?? productionConstants.defaultStripWidthMm,
@@ -169,8 +169,8 @@ export const useConfiguratorStore = create<StoreState>((set, get) => ({
   setDimensions: (partial) =>
     set((state) => {
       const next = { ...state.config, ...partial };
-      if (partial.orderWidthMm !== undefined) next.orderWidthMm = clampOrderDimensionMm(partial.orderWidthMm);
-      if (partial.orderLengthMm !== undefined) next.orderLengthMm = clampOrderDimensionMm(partial.orderLengthMm);
+      if (partial.orderWidthMm !== undefined) next.orderWidthMm = clampCarpetLengthMm(partial.orderWidthMm);
+      if (partial.orderLengthMm !== undefined) next.orderLengthMm = clampCarpetWidthMm(partial.orderLengthMm);
       if (partial.defaultStripWidthMm !== undefined) next.defaultStripWidthMm = clampMm(partial.defaultStripWidthMm);
       if (partial.cableEdgeOffsetMm !== undefined) next.cableEdgeOffsetMm = clampCableEdgeOffset(partial.cableEdgeOffsetMm);
       if (partial.dimensionSource !== undefined) next.dimensionSource = partial.dimensionSource;

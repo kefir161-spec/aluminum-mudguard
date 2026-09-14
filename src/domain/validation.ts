@@ -12,7 +12,8 @@ import {
   SCRAPER_HEIGHT_MM,
   SCRAPER_WIDTH_MM,
   MIN_ORDER_DIMENSION_MM,
-  MAX_ORDER_DIMENSION_MM,
+  MAX_CARPET_LENGTH_MM,
+  MAX_CARPET_WIDTH_MM,
 } from './constants';
 import {
   getScraperEdgeWarnings,
@@ -103,5 +104,6 @@ export const productionConstants = {
   moduleGapMm: MODULE_GAP_MM,
   pitInsetMm: PIT_INSET_MM,
   minOrderDimensionMm: MIN_ORDER_DIMENSION_MM,
-  maxOrderDimensionMm: MAX_ORDER_DIMENSION_MM,
+  maxCarpetWidthMm: MAX_CARPET_WIDTH_MM,
+  maxCarpetLengthMm: MAX_CARPET_LENGTH_MM,
 };

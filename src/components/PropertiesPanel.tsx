@@ -1,7 +1,8 @@
 import { moduleTypeOrder, moduleDefinitions } from '../domain/moduleDefinitions';
 import {
   PIT_INSET_MM,
-  MAX_ORDER_DIMENSION_MM,
+  MAX_CARPET_LENGTH_MM,
+  MAX_CARPET_WIDTH_MM,
   MIN_ORDER_DIMENSION_MM,
 } from '../domain/constants';
 import {
@@ -96,7 +97,7 @@ export const PropertiesPanel = ({
               variant="mm"
               value={config.orderLengthMm}
               min={MIN_ORDER_DIMENSION_MM}
-              max={MAX_ORDER_DIMENSION_MM}
+              max={MAX_CARPET_WIDTH_MM}
               fractionDigits={0}
               onCommit={(value) => onDimension('orderLengthMm', value)}
             />
@@ -110,7 +111,7 @@ export const PropertiesPanel = ({
               variant="mm"
               value={config.orderWidthMm}
               min={MIN_ORDER_DIMENSION_MM}
-              max={MAX_ORDER_DIMENSION_MM}
+              max={MAX_CARPET_LENGTH_MM}
               fractionDigits={0}
               onCommit={(value) => onDimension('orderWidthMm', value)}
             />

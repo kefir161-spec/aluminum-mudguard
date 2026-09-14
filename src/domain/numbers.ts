@@ -4,7 +4,8 @@ import {
   CABLE_SPACING_MAX_MM,
   CABLE_SPACING_MIN_MM,
   MAX_CABLES,
-  MAX_ORDER_DIMENSION_MM,
+  MAX_CARPET_LENGTH_MM,
+  MAX_CARPET_WIDTH_MM,
   MIN_ORDER_DIMENSION_MM,
 } from './constants';
 
@@ -15,8 +16,13 @@ export const clampMm = (value: number, min = MIN_STRIP_WIDTH_MM, max = 50_000): 
   return Math.min(max, Math.max(min, value));
 };
 
-export const clampOrderDimensionMm = (value: number): number =>
-  clampMm(value, MIN_ORDER_DIMENSION_MM, MAX_ORDER_DIMENSION_MM);
+/** Ширина ковра (orderLengthMm) — не более 3 м. */
+export const clampCarpetWidthMm = (value: number): number =>
+  clampMm(value, MIN_ORDER_DIMENSION_MM, MAX_CARPET_WIDTH_MM);
+
+/** Длина ковра (orderWidthMm) — без лимита 3 м. */
+export const clampCarpetLengthMm = (value: number): number =>
+  clampMm(value, MIN_ORDER_DIMENSION_MM, MAX_CARPET_LENGTH_MM);
 
 export const clampIntegerMm = (value: number, min: number, max: number): number => {
   if (!Number.isFinite(value)) return min;
