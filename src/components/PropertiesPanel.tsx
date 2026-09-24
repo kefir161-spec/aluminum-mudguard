@@ -20,7 +20,6 @@ import { getValidManualCounts, getValidSpacingsForManualCount } from '../domain/
 import type { DimensionSource, ProductConfig, Strip } from '../domain/types';
 import { MAX_DRAWING_COMMENT_LENGTH } from '../domain/drawingComment';
 import { MAX_CARPET_COUNT, MIN_CARPET_COUNT } from '../domain/carpetCount';
-import { KANT_PRICE_PER_LINEAR_METER, KANT_WIDTH_MM } from '../domain/kant';
 import { ModulePreviewThumb } from './ModulePreviewThumb';
 import { NumericMmField } from './NumericMmField';
 import { AccordionSection } from './ui/AccordionSection';
@@ -298,13 +297,7 @@ export const PropertiesPanel = ({
             >
               {kantEnabled ? 'Кант 50 мм включён' : 'Кант 50 мм'}
             </Button>
-            {kantAvailable ? (
-              <p className="field-hint">
-                Алюминиевое обрамление {KANT_WIDTH_MM} мм. К расчётному размеру ковра +{KANT_WIDTH_MM} мм с каждой
-                стороны.
-                {` ${KANT_PRICE_PER_LINEAR_METER} ₽/пог. м.`}
-              </p>
-            ) : (
+            {!kantAvailable && (
               <p className="field-hint">Кант доступен при размере ковра, не для приямка.</p>
             )}
           </div>

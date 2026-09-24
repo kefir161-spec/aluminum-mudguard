@@ -109,10 +109,6 @@ export const SpecPanel = ({ config, calculation }: Props) => {
       </div>
       <div className="spec-details">
         <p>
-          <strong>Цены:</strong> розничные по прайсу от 01.04.26, ₽/м² с НДС, для стандартного и усиленного
-          алюминиевого профиля.
-        </p>
-        <p>
           <strong>Комплектующие:</strong> заглушки — {calculation.plugCount} шт.; втулки — {calculation.bushingCount}{' '}
           шт.; тросы — {cableText}.
         </p>
