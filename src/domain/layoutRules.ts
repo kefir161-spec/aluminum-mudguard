@@ -4,6 +4,7 @@ import {
   SCRAPER_WIDTH_MM,
 } from './constants';
 import { formatWidthGapWarning } from './layoutGap';
+import { spacerFitLimitMm } from './gapFit';
 import type { ModuleType, Strip } from './types';
 
 export const getStripNominalWidth = (type: ModuleType): number =>
@@ -275,7 +276,9 @@ export const buildStripsFromPattern = (
 
   const filledWidth = computeLayoutWidth(fixed);
   const gapWarning =
-    formatWidthGapWarning(Math.round(targetWidthMm), Math.round(filledWidth), Math.round(filledWidth)) ?? undefined;
+    formatWidthGapWarning(Math.round(targetWidthMm), Math.round(filledWidth), Math.round(filledWidth), {
+      spacerFitLimitMm: spacerFitLimitMm(Math.max(0, fixed.length - 1)),
+    }) ?? undefined;
 
   return { strips: fixed, warning: gapWarning };
 };

@@ -4,6 +4,7 @@ import {
   MAX_CARPET_LENGTH_MM,
   MAX_CARPET_WIDTH_MM,
   MIN_ORDER_DIMENSION_MM,
+  EXACT_SPACER_FIT_MIN_LENGTH_MM,
 } from '../domain/constants';
 import {
   carpetLengthHint,
@@ -127,7 +128,8 @@ export const PropertiesPanel = ({
         <label className="checkbox-field">
           <input
             type="checkbox"
-            checked={config.fitToOrderSize ?? false}
+            checked={(config.fitToOrderSize ?? false) || config.orderWidthMm > EXACT_SPACER_FIT_MIN_LENGTH_MM}
+            disabled={config.orderWidthMm > EXACT_SPACER_FIT_MIN_LENGTH_MM}
             onChange={(event) => onFitToOrderSize(event.target.checked)}
           />
           <span>Подогнать под размер заказчика</span>

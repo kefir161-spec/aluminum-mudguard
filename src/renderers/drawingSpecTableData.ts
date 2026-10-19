@@ -36,16 +36,13 @@ export const buildSpecRows = (calculation: CalculationResult, cableCount: number
 export const buildDrawingFitLine = (calculation: CalculationResult): string | undefined => {
   if (!calculation.fitToOrderSize) return undefined;
 
-  const fromWidthMm = Math.round(calculation.nominalLayoutWidthMm);
-  const toWidthMm = Math.round(
-    calculation.fitApplied ? calculation.effectiveLayoutWidthMm : calculation.orderTargetWidthMm,
-  );
+  if (!calculation.fitApplied) return undefined;
+  if (Math.abs(calculation.effectiveLayoutWidthMm - calculation.nominalLayoutWidthMm) < 0.05) return undefined;
 
-  if (fromWidthMm === toWidthMm) return undefined;
+  const verb = calculation.effectiveLayoutWidthMm > calculation.nominalLayoutWidthMm ? 'расслабить' : 'стянуть';
+  const adjustmentMm = calculation.fitActionMm;
+  const rounded = Math.round(adjustmentMm * 10) / 10;
+  const amount = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace('.', ',');
 
-  const verb = toWidthMm > fromWidthMm ? 'расслабить' : 'стянуть';
-  const adjustmentMm =
-    calculation.fitActionMm > 0 ? calculation.fitActionMm : Math.abs(toWidthMm - fromWidthMm);
-
-  return `Подгонка натяжением тросов: ${verb} полотно на ${adjustmentMm} мм.`;
+  return `Подгонка демпфер-проставками: ${verb} полотно на ${amount} мм.`;
 };

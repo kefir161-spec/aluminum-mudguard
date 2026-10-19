@@ -1,4 +1,5 @@
-import { resolveLayoutDimensions } from '../domain/gapFit';
+import { resolveLayoutDimensions, shouldFitSpacers } from '../domain/gapFit';
+import { getOrderTargetDimensions } from '../domain/pitDimensions';
 import { isOuterKantEnabled, KANT_WIDTH_MM, resolveKantInnerSizeMm } from '../domain/kant';
 import type { ProductConfig } from '../domain/types';
 import type { ResolvedLayout } from '../domain/gapFit';
@@ -58,15 +59,17 @@ export const buildLayoutGeometry = (
 ): LayoutGeometry => {
   const { fit = 'contain', align = 'center', sizeFactor = 1 } = options;
   const boundedSizeFactor = Math.max(0.1, Math.min(sizeFactor, 1));
+  const orderTarget = getOrderTargetDimensions(config);
+  const fitToOrder = shouldFitSpacers(orderTarget.totalWidthMm, config.fitToOrderSize);
   const resolved = resolveLayoutDimensions(
     config.strips,
-    config.totalWidthMm,
-    config.totalWidthMm,
-    config.fitToOrderSize ?? false,
+    orderTarget.totalWidthMm,
+    orderTarget.totalWidthMm,
+    fitToOrder,
   );
   const kantEnabled = isOuterKantEnabled(config.hasOuterKant, config.dimensionSource);
   const kantInner = resolveKantInnerSizeMm(
-    config.fitToOrderSize ?? false,
+    fitToOrder,
     resolved.fitApplied,
     resolved.effectiveWidthMm,
     resolved.nominalWidthMm,

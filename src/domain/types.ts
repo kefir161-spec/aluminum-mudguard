@@ -1,6 +1,10 @@
 import type { CableLayout, CableLayoutMode } from './cableLayout';
-import type { CompressionAllowance } from './compression';
 import type { FitAction } from './gapFit';
+
+export type CompressionAllowance = {
+  minMm: number;
+  maxMm: number;
+};
 
 export type ModuleType = 'rubber' | 'pile' | 'brush' | 'scraper';
 
@@ -54,7 +58,7 @@ export type ProductConfig = {
   /** Ручной режим: шаг между тросами, мм. */
   manualCableSpacingMm?: number;
   cableEdgeOffsetMm?: number;
-  /** Подогнать полотно под заказной габарит натяжением тросов (зазоры между планками). */
+  /** Подогнать длину ковра сжатием и растяжением демпфер-проставок (4,5–5,5 мм). */
   fitToOrderSize?: boolean;
   /** Скидка −10 % при ширине ковра менее 1200 мм (только если включена вручную). */
   narrowWidthDiscountEnabled?: boolean;
@@ -84,6 +88,7 @@ export type CalculationByType = {
   type: ModuleType;
   count: number;
   totalWidthMm: number;
+  /** Площадь планок этого типа, без зазоров проставок. */
   areaM2: number;
   percentage: number;
   unitPrice: GradedPrice;

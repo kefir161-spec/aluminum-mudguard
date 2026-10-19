@@ -122,13 +122,22 @@ describe('gapFit', () => {
     expect(resolved.fitApplied).toBe(false);
   });
 
-  it('applies fit when enabled and within compression allowance', () => {
-    const strips = rebuildLayoutToTargetWidth(['rubber'], 993);
+  it('fits the order exactly when the difference is within 0.5 mm per spacer', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber'], 1000);
     const nominal = strips.reduce((sum, strip) => sum + strip.widthMm, 0) + (strips.length - 1) * MODULE_GAP_MM;
     const resolved = resolveLayoutDimensions(strips, 1000, 1000, true);
     expect(resolved.fitApplied).toBe(true);
-    expect(resolved.effectiveWidthMm).toBeGreaterThan(nominal);
-    expect(Math.abs(resolved.remainderMm)).toBeLessThanOrEqual(7);
+    expect(resolved.effectiveWidthMm).toBeCloseTo(1000);
+    expect(resolved.isFullyFitted).toBe(true);
+    expect(resolved.gapSizesMm.every((gap) => gap >= 4.5 && gap <= 5.5)).toBe(true);
+    expect(resolved.effectiveWidthMm).not.toBeCloseTo(nominal);
+  });
+
+  it('does not stretch a spacer past 5.5 mm', () => {
+    const strips = [strip('rubber'), strip('pile')];
+    const resolved = resolveLayoutDimensions(strips, 1000, 1000, true);
+    expect(resolved.gapSizesMm.every((gap) => gap <= 5.5 + 0.001)).toBe(true);
+    expect(resolved.isFullyFitted).toBe(false);
   });
 });
 
@@ -317,6 +326,30 @@ describe('calculations report both profile grades', () => {
     });
   });
 
+  it('fits a carpet longer than 700 mm to the millimeter without the manual switch', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber'], 1000);
+    const result = calculateConfig(makeConfig({ strips, orderWidthMm: 1000, fitToOrderSize: false }));
+    expect(result.fitToOrderSize).toBe(true);
+    expect(result.fitApplied).toBe(true);
+    expect(result.effectiveLayoutWidthMm).toBeCloseTo(1000);
+    expect(result.isFullyFitted).toBe(true);
+  });
+
+  it('leaves a carpet of 700 mm and shorter at the nominal 5 mm spacer unless fit is enabled', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber'], 400);
+    const result = calculateConfig(makeConfig({ strips, orderWidthMm: 400, fitToOrderSize: false }));
+    expect(result.fitApplied).toBe(false);
+    expect(result.gapSizesMm.every((gap) => gap === MODULE_GAP_MM)).toBe(true);
+  });
+
+  it('prices the planks and does not charge for spacer air when the carpet is fitted', () => {
+    const strips = rebuildLayoutToTargetWidth(['rubber'], 1000);
+    const plain = calculateConfig(makeConfig({ strips, orderWidthMm: 400, fitToOrderSize: false }));
+    const fitted = calculateConfig(makeConfig({ strips, orderWidthMm: 1000, fitToOrderSize: true }));
+    expect(fitted.effectiveLayoutWidthMm).not.toBeCloseTo(plain.effectiveLayoutWidthMm);
+    expect(fitted.totalPrice.standard).toBeCloseTo(plain.totalPrice.standard);
+  });
+
   it('prices the same area twice, reinforced above standard', () => {
     expect(result.totalPrice.reinforced).toBeGreaterThan(result.totalPrice.standard);
     for (const grade of grades) {
@@ -421,7 +454,8 @@ describe('outer kant', () => {
     const withKant = calculateConfig(makeConfig({ strips, hasOuterKant: true }));
     expect(withKant.kantEnabled).toBe(true);
     expect(withKant.kantWidthMm).toBe(50);
-    expect(withKant.kantOverallWidthMm).toBe(withKant.nominalLayoutWidthMm + 100);
+    const fittedLengthMm = withKant.fitApplied ? withKant.effectiveLayoutWidthMm : withKant.nominalLayoutWidthMm;
+    expect(withKant.kantOverallWidthMm).toBeCloseTo(fittedLengthMm + 100);
     expect(withKant.kantOverallLengthMm).toBe(1600);
     for (const grade of grades) {
       expect(withKant.totalPrice[grade]).toBeCloseTo(base.totalPrice[grade] + withKant.kantPrice);
@@ -429,11 +463,12 @@ describe('outer kant', () => {
     expect(withKant.subtotalPrice).toEqual(base.subtotalPrice);
   });
 
-  it('adds kant to the calculated layout size, not the ordered size', () => {
+  it('adds kant around the fitted length when spacers close the order', () => {
     const strips = rebuildLayoutToTargetWidth(['rubber', 'pile'], 1000);
     const result = calculateConfig(makeConfig({ strips, hasOuterKant: true }));
     expect(result.nominalLayoutWidthMm).toBeLessThan(1000);
-    expect(result.kantOverallWidthMm).toBe(result.nominalLayoutWidthMm + 100);
+    expect(result.effectiveLayoutWidthMm).toBeCloseTo(1000);
+    expect(result.kantOverallWidthMm).toBeCloseTo(result.effectiveLayoutWidthMm + 100);
     expect(result.kantOverallLengthMm).toBe(result.orderTargetLengthMm + 100);
   });
 
@@ -477,7 +512,8 @@ describe('outer kant', () => {
     const layout = buildLayoutGeometry(config, 800, 400, 0, 0, { fit: 'contain', align: 'center' });
     expect(layout.kantEnabled).toBe(true);
     expect(layout.overallLengthMm).toBe(config.totalLengthMm + 2 * KANT_WIDTH_MM);
-    expect(layout.overallWidthMm).toBe(layout.layoutWidthMm + 2 * KANT_WIDTH_MM);
+    expect(layout.overallWidthMm).toBeCloseTo(layout.effectiveWidthMm + 2 * KANT_WIDTH_MM);
+    expect(layout.resolved.remainderMm).toBe(0);
     expect(layout.matX).toBeCloseTo(layout.outerX + layout.kantPx);
     expect(layout.matY).toBeCloseTo(layout.outerY + layout.kantPx);
     expect(layout.matWidthPx).toBeCloseTo(layout.outerWidthPx - 2 * layout.kantPx);
@@ -506,13 +542,5 @@ describe('carpet dimension clamps', () => {
     expect(clampCarpetLengthMm(50)).toBe(100);
     expect(clampCarpetLengthMm(4500)).toBe(4500);
     expect(clampCarpetLengthMm(80_000)).toBe(50_000);
-  });
-});
-
-describe('formatAllowance', () => {
-  it('formats symmetric allowance', async () => {
-    const { formatAllowance } = await import('./formatAllowance');
-    expect(formatAllowance(7, 7)).toBe('±7 мм');
-    expect(formatAllowance(7, 12)).toBe('±7–12 мм');
   });
 });

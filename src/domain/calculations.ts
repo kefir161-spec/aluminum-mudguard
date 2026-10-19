@@ -2,8 +2,7 @@ import { resolveCableLayout } from './cableLayout';
 import { clampCarpetCount } from './carpetCount';
 import { moduleTypeOrder } from './moduleDefinitions';
 import { computeGapTotal, countBushings, countPlugs } from './layoutRules';
-import { getCompressionAllowance, isWithinCompressionAllowance } from './compression';
-import { resolveLayoutDimensions } from './gapFit';
+import { resolveLayoutDimensions, shouldFitSpacers, spacerFitLimitMm } from './gapFit';
 import { getOrderTargetDimensions } from './pitDimensions';
 import type { CalculationResult, ProductConfig, Strip } from './types';
 import { getKantMetrics, isOuterKantEnabled, resolveKantInnerSizeMm } from './kant';
@@ -16,7 +15,7 @@ const stripAreaM2 = (strip: Strip, totalLengthMm: number): number =>
 
 export const calculateConfig = (config: ProductConfig): CalculationResult => {
   const orderTarget = getOrderTargetDimensions(config);
-  const fitToOrderSize = config.fitToOrderSize ?? false;
+  const fitToOrderSize = shouldFitSpacers(orderTarget.totalWidthMm, config.fitToOrderSize);
   const resolved = resolveLayoutDimensions(
     config.strips,
     orderTarget.totalWidthMm,
@@ -56,7 +55,8 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
   });
 
   const widthDeltaMm = Math.round(effectiveLayoutWidthMm) - Math.round(orderTarget.totalWidthMm);
-  const compressionAllowance = getCompressionAllowance(orderTarget.totalWidthMm);
+  const spacerLimitMm = spacerFitLimitMm(Math.max(0, config.strips.length - 1));
+  const compressionAllowance = { minMm: spacerLimitMm, maxMm: spacerLimitMm };
   const subtotalPrice = mapProfileGrades((grade) =>
     byType.reduce((sum, item) => sum + item.price[grade], 0),
   );
@@ -103,10 +103,7 @@ export const calculateConfig = (config: ProductConfig): CalculationResult => {
     bushingCount: scaleQty(countBushings(config.strips.length, cableLayout?.count ?? 0)),
     cableLayout,
     compressionAllowance,
-    isWithinCompression: isWithinCompressionAllowance(
-      resolved.nominalWidthMm - orderTarget.totalWidthMm,
-      orderTarget.totalWidthMm,
-    ),
+    isWithinCompression: Math.abs(resolved.nominalWidthMm - orderTarget.totalWidthMm) <= spacerLimitMm + 0.01,
     orderTargetWidthMm: orderTarget.totalWidthMm,
     orderTargetLengthMm: orderTarget.totalLengthMm,
     fitToOrderSize,

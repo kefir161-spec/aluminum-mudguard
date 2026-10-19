@@ -1,10 +1,10 @@
-import { getCompressionAllowance } from './compression';
-
 type GapWarningContext = {
   fitToOrder?: boolean;
   fitApplied?: boolean;
   isFullyFitted?: boolean;
   remainderMm?: number;
+  /** Суммарный ход демпфер-проставок, ±мм. */
+  spacerFitLimitMm?: number;
 };
 
 /**
@@ -36,13 +36,13 @@ export const formatWidthGapWarning = (
 
   if (gapMm === 0) return null;
 
-  const allowance = getCompressionAllowance(orderTargetWidthMm);
+  const limitMm = context.spacerFitLimitMm ?? 0;
 
   if (gapMm > 0) {
     if (context.fitToOrder) {
       return `Остаток ${gapMm} мм — подгонка не закрыла заказ.`;
     }
-    if (gapMm <= Math.round(allowance.maxMm)) {
+    if (gapMm <= limitMm + 0.05) {
       return `Остаток ${gapMm} мм — включите подгонку под заказ.`;
     }
     return `Остаток ${gapMm} мм — добавьте планки.`;
@@ -52,7 +52,7 @@ export const formatWidthGapWarning = (
   if (context.fitToOrder) {
     return `Лишние ${excess} мм — подгонка не закрыла заказ.`;
   }
-  if (excess <= Math.round(allowance.maxMm)) {
+  if (excess <= limitMm + 0.05) {
     return `Лишние ${excess} мм — включите подгонку под заказ.`;
   }
   return `Лишние ${excess} мм — уберите планки.`;

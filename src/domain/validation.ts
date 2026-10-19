@@ -22,6 +22,7 @@ import {
   patternHasScraperAtEdge,
 } from './layoutRules';
 import { formatWidthGapWarning } from './layoutGap';
+import { spacerFitLimitMm } from './gapFit';
 
 export const validateConfig = (config: ProductConfig): string[] => {
   const warnings: string[] = [];
@@ -86,6 +87,7 @@ export const validateConfigWithCalculation = (
       fitApplied: calculation.fitApplied,
       isFullyFitted: calculation.isFullyFitted,
       remainderMm: calculation.remainderMm,
+      spacerFitLimitMm: spacerFitLimitMm(Math.max(0, config.strips.length - 1)),
     },
   );
   if (widthGapWarning) {
