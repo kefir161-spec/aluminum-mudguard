@@ -1,6 +1,10 @@
 import { moduleTypeOrder } from '../domain/moduleDefinitions';
 import { profileTextureConfig } from '../data/profileTextures';
 
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
+/** Достаточно для чертежа A3; исходные PNG до ~2 МБ иначе раздувают SVG. */
+const MAX_EXPORT_EDGE_PX = 512;
+
 const imageDataUrlCache = new Map<string, string>();
 let prefetchPromise: Promise<void> | null = null;
 
@@ -22,6 +26,28 @@ const blobToDataURL = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
+const compressImageForExport = async (blob: Blob): Promise<string> => {
+  if (typeof createImageBitmap !== 'function') {
+    return blobToDataURL(blob);
+  }
+
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const scale = Math.min(1, MAX_EXPORT_EDGE_PX / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return blobToDataURL(blob);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.82);
+  } finally {
+    bitmap.close();
+  }
+};
+
 const cacheImageDataUrl = async (url: string): Promise<string> => {
   const key = normalizeAssetKey(url);
   const cached = imageDataUrlCache.get(key);
@@ -32,7 +58,7 @@ const cacheImageDataUrl = async (url: string): Promise<string> => {
     throw new Error(`HTTP ${response.status} для ${url}`);
   }
 
-  const dataUrl = await blobToDataURL(await response.blob());
+  const dataUrl = await compressImageForExport(await response.blob());
   imageDataUrlCache.set(key, dataUrl);
   return dataUrl;
 };
@@ -45,7 +71,7 @@ const prefetchExportImages = async (): Promise<void> => {
   await Promise.all(urls.map((url) => cacheImageDataUrl(url)));
 };
 
-/** Предзагружает текстуры профилей один раз перед экспортом. */
+/** Предзагружает и сжимает текстуры профилей один раз перед экспортом. */
 export const ensureExportImagesReady = (): Promise<void> => {
   if (!prefetchPromise) {
     prefetchPromise = prefetchExportImages().catch((error) => {
@@ -56,41 +82,38 @@ export const ensureExportImagesReady = (): Promise<void> => {
   return prefetchPromise;
 };
 
-export const getExportImageHref = (url: string): string =>
-  imageDataUrlCache.get(normalizeAssetKey(url)) ?? url;
+const readImageHref = (image: SVGImageElement): string =>
+  image.getAttribute('href') ||
+  image.getAttributeNS(XLINK_NS, 'href') ||
+  image.href?.baseVal ||
+  '';
 
-/** Подменяет все SVG image на data: URL перед захватом чертежа. */
-export const prepareNodeImagesForExport = async (root: ParentNode): Promise<void> => {
-  const images = [...root.querySelectorAll('image')];
+const writeImageHref = (image: SVGImageElement, href: string): void => {
+  image.setAttribute('href', href);
+  image.setAttributeNS(XLINK_NS, 'href', href);
+};
 
-  await Promise.all(
-    images.map(async (node) => {
-      const image = node as SVGImageElement;
-      const href = image.href?.baseVal ?? '';
-      if (!href || href.startsWith('data:')) return;
+/**
+ * Подставляет сжатые data URL в <image> клона SVG.
+ * Без сжатия сотни копий исходных PNG (до ~2 МБ) ломают загрузку blob SVG → Image.
+ */
+export const inlineSvgImagesForExport = async (svg: SVGSVGElement): Promise<void> => {
+  const images = [...svg.querySelectorAll('image')] as SVGImageElement[];
+  if (images.length === 0) return;
 
-      const dataUrl = await cacheImageDataUrl(href);
-      image.href.baseVal = dataUrl;
-    }),
-  );
-
-  const hrefs = new Set(
-    images
-      .map((node) => (node as SVGImageElement).href?.baseVal ?? '')
-      .filter((href) => href.startsWith('data:')),
-  );
-
-  if (hrefs.size === 0) return;
-
-  await Promise.all(
-    [...hrefs].map(
-      (src) =>
-        new Promise<void>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error(`Не удалось декодировать изображение (${src.slice(0, 48)}…)`));
-          img.src = src;
-        }),
+  const uniqueHrefs = [
+    ...new Set(
+      images
+        .map((image) => readImageHref(image))
+        .filter((href) => Boolean(href) && !href.startsWith('data:')),
     ),
-  );
+  ];
+
+  await Promise.all(uniqueHrefs.map((href) => cacheImageDataUrl(href)));
+
+  for (const image of images) {
+    const rawHref = readImageHref(image);
+    if (!rawHref || rawHref.startsWith('data:')) continue;
+    writeImageHref(image, await cacheImageDataUrl(rawHref));
+  }
 };

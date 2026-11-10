@@ -1,4 +1,5 @@
 import { describeUnknownError } from './exportErrors';
+import { inlineSvgImagesForExport } from './profileImageCache';
 import type { ExportImageOptions } from './exportPng';
 
 const DRAWING_SHEET_STYLES = `
@@ -11,16 +12,29 @@ const DRAWING_SHEET_STYLES = `
   .dim-label { font-size: 18px; font-weight: 400; }
 `;
 
-const normalizeClipPathRefs = (root: ParentNode): void => {
-  root.querySelectorAll<SVGElement>('[clip-path]').forEach((element) => {
-    const value = element.getAttribute('clip-path');
-    if (!value) return;
+const URL_REF_ATTRS = [
+  'clip-path',
+  'fill',
+  'stroke',
+  'mask',
+  'filter',
+  'marker-start',
+  'marker-mid',
+  'marker-end',
+] as const;
 
-    const fragmentMatch = value.match(/#([A-Za-z0-9_-]+)/);
-    if (fragmentMatch) {
-      element.setAttribute('clip-path', `url(#${fragmentMatch[1]})`);
-    }
-  });
+const normalizeUrlFragmentRefs = (root: ParentNode): void => {
+  for (const attr of URL_REF_ATTRS) {
+    root.querySelectorAll<SVGElement>(`[${attr}]`).forEach((element) => {
+      const value = element.getAttribute(attr);
+      if (!value?.includes('url(')) return;
+
+      const fragmentMatch = value.match(/#([A-Za-z0-9_-]+)/);
+      if (fragmentMatch) {
+        element.setAttribute(attr, `url(#${fragmentMatch[1]})`);
+      }
+    });
+  }
 };
 
 const prepareSvgClone = (svg: SVGSVGElement): SVGSVGElement => {
@@ -32,24 +46,71 @@ const prepareSvgClone = (svg: SVGSVGElement): SVGSVGElement => {
   style.textContent = DRAWING_SHEET_STYLES;
 
   const defs =
-    clone.querySelector('defs') ?? (() => {
+    clone.querySelector('defs') ??
+    (() => {
       const node = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       clone.insertBefore(node, clone.firstChild);
       return node;
     })();
 
   defs.insertBefore(style, defs.firstChild);
-  normalizeClipPathRefs(clone);
+  normalizeUrlFragmentRefs(clone);
   return clone;
 };
+
+const IMAGE_LOAD_TIMEOUT_MS = 20000;
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = (error) => reject(error);
+    const timer = window.setTimeout(() => {
+      img.onload = null;
+      img.onerror = null;
+      reject(new Error('таймаут загрузки изображения чертежа'));
+    }, IMAGE_LOAD_TIMEOUT_MS);
+
+    img.onload = () => {
+      window.clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = (error) => {
+      window.clearTimeout(timer);
+      reject(error);
+    };
     img.src = src;
   });
+
+type LoadedSvgImage = {
+  img: HTMLImageElement;
+  revoke: () => void;
+};
+
+const svgMarkupToImage = async (svgMarkup: string): Promise<LoadedSvgImage> => {
+  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(svgBlob);
+  const revoke = () => URL.revokeObjectURL(blobUrl);
+
+  try {
+    const img = await loadImage(blobUrl);
+    if (typeof img.decode === 'function') {
+      await img.decode();
+    }
+    return { img, revoke };
+  } catch (blobError) {
+    revoke();
+    // Fallback: некоторые окружения стабильнее грузят data: SVG, чем blob:.
+    try {
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+      const img = await loadImage(dataUrl);
+      if (typeof img.decode === 'function') {
+        await img.decode();
+      }
+      return { img, revoke: () => undefined };
+    } catch {
+      throw blobError;
+    }
+  }
+};
 
 /** Захват SVG-чертежа без html-to-image — стабильнее с clip-path и url(#). */
 export const captureDrawingSheetPngDataUrl = async (
@@ -73,12 +134,15 @@ export const captureDrawingSheetPngDataUrl = async (
   clone.setAttribute('width', String(width));
   clone.setAttribute('height', String(height));
 
-  const svgMarkup = new XMLSerializer().serializeToString(clone);
-  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
-  const svgUrl = URL.createObjectURL(svgBlob);
+  let revokeObjectUrl: (() => void) | undefined;
 
   try {
-    const img = await loadImage(svgUrl);
+    await inlineSvgImagesForExport(clone);
+
+    const svgMarkup = new XMLSerializer().serializeToString(clone);
+    const { img, revoke } = await svgMarkupToImage(svgMarkup);
+    revokeObjectUrl = revoke;
+
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * pixelRatio);
     canvas.height = Math.round(height * pixelRatio);
@@ -98,6 +162,6 @@ export const captureDrawingSheetPngDataUrl = async (
       cause: error,
     });
   } finally {
-    URL.revokeObjectURL(svgUrl);
+    revokeObjectUrl?.();
   }
 };

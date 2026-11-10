@@ -1,7 +1,7 @@
 import { syncFitLineBadges } from '../renderers/fitLineBadge';
 import { SHEET_HEIGHT_PX, SHEET_WIDTH_PX } from '../domain/eskd';
 import { captureDrawingSheetPngDataUrl } from './captureDrawingSheet';
-import { ensureExportImagesReady, prepareNodeImagesForExport } from './profileImageCache';
+import { ensureExportImagesReady } from './profileImageCache';
 import { savePdfFromPngDataUrl } from './exportPdf';
 import { savePngFromDataUrl } from './exportPng';
 
@@ -34,7 +34,6 @@ const exportFromNode = async (
   await document.fonts.ready;
   await waitForPaint();
   syncFitLineBadges(node);
-  await prepareNodeImagesForExport(node);
   await waitForPaint();
 
   const options = { width: DRAWING_EXPORT_WIDTH, height: DRAWING_EXPORT_HEIGHT, pixelRatio: 2 };
